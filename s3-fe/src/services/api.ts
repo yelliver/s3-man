@@ -95,6 +95,14 @@ export const deleteBucket = async (bucketName: string): Promise<void> => {
   }
 };
 
+export const createFolder = async (bucket: string, folderPath: string): Promise<void> => {
+  const url = `${BASE_URL}/api/files/create-folder?bucket=${bucket}&key=${folderPath}`;
+  const response = await fetch(url, { method: "POST" });
+  if (!response.ok) {
+    throw new Error(`Failed to create folder: ${response.statusText}`);
+  }
+};
+
 export const uploadFile = async (
   bucket: string,
   path: string,

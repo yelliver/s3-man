@@ -40,6 +40,7 @@ const FileTable: React.FC<FileTableProps> = ({
         <th>Name</th>
         <th>Size</th>
         <th>Last Modified</th>
+        <th>etag</th>
         <th>Actions</th>
       </tr>
       </thead>
@@ -61,6 +62,7 @@ const FileTable: React.FC<FileTableProps> = ({
           <td>{fileOrFolder.name}</td>
           <td>{fileOrFolder.folder ? "-" : fileOrFolder.size}</td>
           <td>{fileOrFolder.folder ? "-" : fileOrFolder.lastModified}</td>
+          <td>{fileOrFolder.folder ? "-" : fileOrFolder.etag}</td>
           <td>
             {!fileOrFolder.folder && (
               <>

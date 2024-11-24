@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from "react";
-import {Button, Container, Navbar} from "react-bootstrap";
+import {Button, Container, Form, Navbar} from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import BucketList from "./components/BucketList";
 import FileTable, {FileOrFolder} from "./components/FileTable";
@@ -8,8 +8,9 @@ import UploadModal from "./components/UploadModal";
 import {FaArrowUp} from "react-icons/fa";
 import {
   createBucket,
-  deleteBucket, deleteFile,
-  downloadFile,
+  createFolder,
+  deleteBucket,
+  deleteFile,
   fetchBuckets,
   fetchFilesAndFolders,
   uploadFile,
@@ -25,6 +26,7 @@ const App: React.FC = () => {
   const [showMetadataModal, setShowMetadataModal] = useState<boolean>(false);
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]); // Tracks selected files
   const [showUploadModal, setShowUploadModal] = useState<boolean>(false); // Controls the upload modal visibility
+  const [newFolderName, setNewFolderName] = useState<string>(""); // For folder creation
 
   // Load buckets when the app initializes
   useEffect(() => {
@@ -43,7 +45,6 @@ const App: React.FC = () => {
     initializeBuckets();
   }, []);
 
-  // Refresh files for a specific bucket and path
   const refreshFiles = async (bucket: string, currentPath: string = "") => {
     if (!bucket) return;
     setLoading(true);
@@ -57,7 +58,6 @@ const App: React.FC = () => {
     }
   };
 
-  // Handle bucket click
   const handleBucketClick = async (bucket: string) => {
     setSelectedBucket(bucket);
     setPath(""); // Reset to root path
@@ -65,43 +65,17 @@ const App: React.FC = () => {
     await refreshFiles(bucket, ""); // Fetch root files for the selected bucket
   };
 
-  // Handle bucket creation
-  const handleCreateBucket = async (bucketName: string) => {
-    try {
-      await createBucket(bucketName);
-      const bucketList = await fetchBuckets();
-      setBuckets(bucketList);
-    } catch (error) {
-      alert(`Failed to create bucket: ${error instanceof Error ? error.message : error}`);
-    }
-  };
-
-  // Handle bucket deletion
-  const handleDeleteBucket = async (bucketName: string) => {
-    if (!window.confirm(`Are you sure you want to delete the bucket: ${bucketName}?`)) return;
-    try {
-      await deleteBucket(bucketName);
-      const bucketList = await fetchBuckets();
-      setBuckets(bucketList);
-    } catch (error) {
-      alert(`Failed to delete bucket: ${error instanceof Error ? error.message : error}`);
-    }
-  };
-
-  // Handle file upload
-  const handleUpload = async (file: File | null, metadata: Record<string, string>) => {
-    if (!file) {
-      alert("No file selected for upload.");
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) {
+      alert("Folder name cannot be empty.");
       return;
     }
-
     try {
-      await uploadFile(selectedBucket, path, file, metadata);
-      await refreshFiles(selectedBucket, path);
+      await createFolder(selectedBucket, `${path}${newFolderName}/`);
+      setNewFolderName(""); // Clear the textbox
+      await refreshFiles(selectedBucket, path); // Refresh files
     } catch (error) {
-      alert(`Failed to upload file: ${error instanceof Error ? error.message : error}`);
-    } finally {
-      setShowUploadModal(false);
+      alert(`Failed to create folder: ${error instanceof Error ? error.message : error}`);
     }
   };
 
@@ -115,32 +89,6 @@ const App: React.FC = () => {
     } catch (error) {
       alert(`Failed to delete file: ${error instanceof Error ? error.message : error}`);
     }
-  };
-
-  // Handle file download
-  const handleDownload = async () => {
-    if (selectedFiles.length !== 1) {
-      alert("Please select exactly one file to download.");
-      return;
-    }
-
-    try {
-      const blob = await downloadFile(selectedBucket, selectedFiles[0]);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = selectedFiles[0];
-      a.click();
-    } catch (error) {
-      alert(`Failed to download file: ${error instanceof Error ? error.message : error}`);
-    }
-  };
-
-  // Handle "Go Up" action
-  const handleGoUp = () => {
-    const newPath = path.slice(0, path.lastIndexOf("/", path.length - 2) + 1);
-    setPath(newPath);
-    refreshFiles(selectedBucket, newPath);
   };
 
   return (
@@ -157,8 +105,16 @@ const App: React.FC = () => {
           selectedBucket={selectedBucket}
           loading={loading}
           onBucketClick={handleBucketClick}
-          onCreateBucket={handleCreateBucket}
-          onDeleteBucket={handleDeleteBucket}
+          onCreateBucket={(bucketName) =>
+            createBucket(bucketName).then(() => {
+              setBuckets([...buckets, bucketName]);
+            })
+          }
+          onDeleteBucket={(bucketName) =>
+            deleteBucket(bucketName).then(() => {
+              setBuckets(buckets.filter((b) => b !== bucketName));
+            })
+          }
         />
 
         <div style={{flex: 1, padding: "20px"}}>
@@ -168,10 +124,31 @@ const App: React.FC = () => {
                 Files in <strong>{selectedBucket}</strong>/{path || ""}
               </h5>
               <div className="d-flex justify-content-between align-items-center mb-3">
-                <Button variant="secondary" onClick={handleGoUp} disabled={!path} className="me-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    const newPath = path.slice(0, path.lastIndexOf("/", path.length - 2) + 1);
+                    setPath(newPath);
+                    refreshFiles(selectedBucket, newPath);
+                  }}
+                  disabled={!path}
+                  className="me-2"
+                >
                   <FaArrowUp/> Go Up
                 </Button>
-                <Button variant="primary" onClick={() => setShowUploadModal(true)}>
+                <div className="d-flex align-items-center">
+                  <Form.Control
+                    type="text"
+                    placeholder="New folder name"
+                    value={newFolderName}
+                    onChange={(e) => setNewFolderName(e.target.value)}
+                    className="me-2"
+                  />
+                  <Button variant="success" onClick={handleCreateFolder}>
+                    Create Folder
+                  </Button>
+                </div>
+                <Button variant="primary" onClick={() => setShowUploadModal(true)} className="ms-3">
                   Upload File
                 </Button>
               </div>
@@ -212,7 +189,9 @@ const App: React.FC = () => {
       <UploadModal
         show={showUploadModal}
         onClose={() => setShowUploadModal(false)}
-        onUpload={handleUpload}
+        onUpload={(file, metadata) =>
+          uploadFile(selectedBucket, path, file, metadata).then(() => refreshFiles(selectedBucket, path))
+        }
       />
     </div>
   );

@@ -14,7 +14,6 @@ import software.amazon.awssdk.services.s3.model.*;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 @RestController
@@ -26,59 +25,43 @@ public class FileController {
 
   @GetMapping
   public ResponseEntity<FilesResponse> listFiles(@RequestParam String bucket, @RequestParam(defaultValue = "") String path) {
-    var response = s3Client.listObjectsV2(
-      ListObjectsV2Request.builder()
-        .bucket(bucket)
-        .prefix(path)
-        .delimiter("/")
-        .build()
-    );
+    var response = s3Client.listObjectsV2(ListObjectsV2Request.builder().bucket(bucket).prefix(path).delimiter("/").build());
 
-    var folders = response.commonPrefixes()
-      .stream()
-      .map(prefix -> {
-        var folder = new FileOrFolder();
-        folder.setName(prefix.prefix().replace(path, ""));
-        folder.setFolder(true);
-        folder.setMetadata(new TreeMap<>());
-        return folder;
-      })
+    var folders = response.commonPrefixes().stream()
+      .map(prefix -> new FileOrFolder().setName(prefix.prefix().replace(path, "")).setFolder(true))
       .collect(Collectors.toList());
 
     var files = response.contents()
       .stream()
-      .filter(s3Object -> !s3Object.key().equals(path))
-      .map(s3Object -> {
-        var headResponse = s3Client.headObject(
-          HeadObjectRequest.builder()
-            .bucket(bucket)
-            .key(s3Object.key())
-            .build()
-        );
-        return new FileOrFolder(
-          s3Object.key().replace(path, ""),
-          s3Object.size(),
-          s3Object.lastModified().toString(),
-          false,
-          headResponse.metadata(),
-          headResponse.eTag()
-        );
-      })
+      .map(s3Object -> new FileOrFolder()
+        .setName(s3Object.key().replace(path, ""))
+        .setSize(s3Object.size())
+        .setLastModified(s3Object.lastModified())
+        .setETag(s3Object.eTag())
+        .setMetadata(s3Client.headObject(HeadObjectRequest.builder().bucket(bucket).key(s3Object.key()).build()).metadata())
+      )
       .collect(Collectors.toList());
 
     return ResponseEntity.ok(new FilesResponse(files, folders));
   }
 
+  @PostMapping("/create-folder")
+  public ResponseEntity<String> createFolder(@RequestParam String bucket, @RequestParam String key) {
+    s3Client.putObject(
+      PutObjectRequest.builder().bucket(bucket).key(key + ".keep").build(),
+      RequestBody.fromBytes(new byte[0])
+    );
+    return ResponseEntity.ok("Folder created successfully: " + key);
+  }
+
   @SneakyThrows
   @PostMapping("/upload")
   public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file, @RequestParam String bucket, @RequestParam(defaultValue = "") String path, @RequestParam(required = false) Map<String, String> metadata) {
-    var finalMetadata = new TreeMap<>(metadata != null ? metadata : Map.of());
-    finalMetadata.put("Content-Type", file.getContentType());
     var response = s3Client.putObject(
       PutObjectRequest.builder()
         .bucket(bucket)
         .key(path + file.getOriginalFilename())
-        .metadata(finalMetadata)
+        .metadata(metadata)
         .build(),
       RequestBody.fromInputStream(file.getInputStream(), file.getSize())
     );
