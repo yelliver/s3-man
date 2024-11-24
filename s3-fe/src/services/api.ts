@@ -97,7 +97,7 @@ export const deleteBucket = async (bucketName: string): Promise<void> => {
 
 export const createFolder = async (bucket: string, folderPath: string): Promise<void> => {
   const url = `${BASE_URL}/api/files/create-folder?bucket=${bucket}&key=${folderPath}`;
-  const response = await fetch(url, { method: "POST" });
+  const response = await fetch(url, {method: "POST"});
   if (!response.ok) {
     throw new Error(`Failed to create folder: ${response.statusText}`);
   }
@@ -112,9 +112,7 @@ export const uploadFile = async (
   try {
     const formData = new FormData();
     formData.append("file", file);
-    Object.entries(metadata).forEach(([key, value]) => {
-      formData.append(`metadata[${key}]`, value);
-    });
+    Object.entries(metadata).forEach(([key, value]) => formData.append(key, value));
 
     const response = await fetch(
       `${BASE_URL}/api/files/upload?bucket=${bucket}&path=${path}`,
