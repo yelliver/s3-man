@@ -6,8 +6,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class S3BeApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(S3BeApplication.class, args);
-	}
+  public static void main(String[] args) {
+    SpringApplication.run(S3BeApplication.class, args);
+  }
 
 }
