@@ -11,7 +11,8 @@ import {
   createFolder,
   deleteBucket,
   deleteFile,
-  downloadFile, downloadZip,
+  downloadFile,
+  downloadZip,
   fetchBuckets,
   fetchFilesAndFolders,
   uploadFile,
@@ -62,31 +63,11 @@ const App: React.FC = () => {
     if (selectedFiles.length === 1) {
       // Single file download
       const fileKey = `${path}${selectedFiles[0]}`;
-      try {
-        const fileBlob = await downloadFile(selectedBucket, fileKey);
-        const url = window.URL.createObjectURL(fileBlob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = selectedFiles[0];
-        a.click();
-        window.URL.revokeObjectURL(url);
-      } catch (error) {
-        console.error("Error downloading file:", error);
-      }
+      await downloadFile(selectedBucket, fileKey); // Open single file download
     } else if (selectedFiles.length > 1) {
       // Multiple files download as ZIP
       const fileKeys = selectedFiles.map((fileName) => `${path}${fileName}`);
-      try {
-        const zipBlob = await downloadZip(selectedBucket, fileKeys);
-        const url = window.URL.createObjectURL(zipBlob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "files.zip";
-        a.click();
-        window.URL.revokeObjectURL(url);
-      } catch (error) {
-        console.error("Error downloading ZIP:", error);
-      }
+      await downloadZip(selectedBucket, fileKeys); // Open ZIP download
     } else {
       alert("No files selected for download.");
     }

@@ -139,46 +139,19 @@ export const deleteFile = async (bucket: string, path: string, fileName: string)
   }
 };
 
-export const downloadFile = async (
-  bucket: string,
-  key: string
-): Promise<Blob> => {
-  try {
-    const response = await fetch(
-      `${BASE_URL}/api/files/download?bucket=${bucket}&key=${key}`
-    );
-    if (!response.ok) {
-      throw new Error(`Failed to download file: ${response.statusText}`);
-    }
-    return await response.blob();
-  } catch (error) {
-    console.error("Error downloading file:", error);
-    throw error;
-  }
+export const downloadFile = async (bucket: string, key: string): Promise<void> => {
+  const url = `${BASE_URL}/api/files/download?bucket=${encodeURIComponent(bucket)}&key=${encodeURIComponent(key)}`;
+  window.open(url, "_blank"); // Open the URL in a new tab or window
 };
 
-// New function for downloading multiple files as a ZIP
-export const downloadZip = async (
-  bucket: string,
-  keys: string[]
-): Promise<Blob> => {
-  try {
-    // Construct query parameters for the GET request
-    const params = new URLSearchParams();
-    params.append("bucket", bucket);
-    keys.forEach((key) => params.append("keys", key)); // Multiple `keys` params for each file
+export const downloadZip = async (bucket: string, keys: string[]): Promise<void> => {
+  const params = new URLSearchParams();
+  params.append("bucket", bucket);
+  keys.forEach((key) => params.append("keys", key)); // Multiple `keys` params for each file
 
-    const response = await fetch(`${BASE_URL}/api/files/download-zip?${params.toString()}`, {
-      method: "GET",
-    });
+  // Construct the URL
+  const url = `${BASE_URL}/api/files/download-zip?${params.toString()}`;
 
-    if (!response.ok) {
-      throw new Error(`Failed to download ZIP: ${response.statusText}`);
-    }
-
-    return await response.blob(); // Return the ZIP file as a blob
-  } catch (error) {
-    console.error("Error downloading ZIP:", error);
-    throw error;
-  }
+  // Open the URL in a new tab or window
+  window.open(url, "_blank"); // Browser handles the download and preserves file name
 };
