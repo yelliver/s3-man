@@ -1,5 +1,6 @@
 import React, {useState} from "react";
-import {Button, Form, Spinner} from "react-bootstrap";
+import {Button, Form, ListGroup, Spinner} from "react-bootstrap";
+import {FaPlus, FaTrash} from "react-icons/fa"; // Import icons
 
 interface BucketListProps {
   buckets: string[];
@@ -34,7 +35,6 @@ const BucketList: React.FC<BucketListProps> = ({
       style={{
         width: "250px",
         backgroundColor: "#f8f9fa",
-        borderRight: "1px solid #ddd",
         padding: "20px",
         height: "100%",
       }}
@@ -43,7 +43,7 @@ const BucketList: React.FC<BucketListProps> = ({
 
       {/* Create Bucket Section */}
       <Form className="mb-3">
-        <Form.Group className="d-flex">
+        <Form.Group className="d-flex align-items-center">
           <Form.Control
             type="text"
             placeholder="New bucket name"
@@ -53,42 +53,43 @@ const BucketList: React.FC<BucketListProps> = ({
           <Button
             variant="primary"
             onClick={handleCreateBucket}
-            className="ms-2"
+            className="ms-2 d-flex align-items-center justify-content-center"
+            style={{height: "38px", width: "38px"}}
           >
-            Create
+            <FaPlus/>
           </Button>
         </Form.Group>
       </Form>
 
-      {/* List of Buckets */}
-      {loading && buckets.length === 0 ? (
-        <Spinner animation="border" variant="primary"/>
+      {/* Bucket List Group */}
+      {loading ? (
+        <div className="text-center">
+          <Spinner animation="border" variant="primary"/>
+        </div>
       ) : (
-        buckets.map((bucket, index) => (
-          <div
-            key={index}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "10px",
-              cursor: "pointer",
-              backgroundColor:
-                selectedBucket === bucket ? "#e9ecef" : "white",
-              borderRadius: "5px",
-              marginBottom: "5px",
-            }}
-          >
-            <span onClick={() => onBucketClick(bucket)}>{bucket}</span>
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={() => onDeleteBucket(bucket)}
+        <ListGroup>
+          {buckets.map((bucket, index) => (
+            <ListGroup.Item
+              key={index}
+              className="d-flex justify-content-between align-items-center"
+              style={{
+                cursor: "pointer",
+                backgroundColor: selectedBucket === bucket ? "#e9ecef" : "white",
+              }}
             >
-              Delete
-            </Button>
-          </div>
-        ))
+              <span onClick={() => onBucketClick(bucket)}>{bucket}</span>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => onDeleteBucket(bucket)}
+                className="d-flex align-items-center justify-content-center"
+                style={{height: "38px", width: "38px"}}
+              >
+                <FaTrash/>
+              </Button>
+            </ListGroup.Item>
+          ))}
+        </ListGroup>
       )}
     </div>
   );

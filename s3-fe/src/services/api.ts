@@ -2,7 +2,7 @@ const BASE_URL = "http://localhost:8080";
 
 export const fetchBuckets = async (): Promise<string[]> => {
   try {
-    const response = await fetch(`${BASE_URL}/api/files/buckets`);
+    const response = await fetch(`${BASE_URL}/api/buckets`);
     if (!response.ok) {
       throw new Error(`Failed to fetch buckets: ${response.statusText}`);
     }

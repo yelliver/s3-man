@@ -7,12 +7,32 @@ import org.springframework.web.bind.annotation.*;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+
 @RestController
 @RequestMapping("/api/buckets")
 public class BucketController {
 
   @Autowired
   private S3Client s3Client;
+
+  // List all buckets
+  @GetMapping
+  public ResponseEntity<List<String>> listBuckets() {
+    try {
+      ListBucketsResponse response = s3Client.listBuckets();
+      List<String> bucketNames = response.buckets()
+        .stream()
+        .map(Bucket::name)
+        .collect(Collectors.toList());
+      return ResponseEntity.ok(bucketNames);
+    } catch (Exception e) {
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .body(Collections.singletonList("Error retrieving bucket list: " + e.getMessage()));
+    }
+  }
 
   // Create a new bucket
   @PostMapping
