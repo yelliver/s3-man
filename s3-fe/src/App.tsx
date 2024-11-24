@@ -108,24 +108,22 @@ const App: React.FC = () => {
           >
             Upload File
           </Button>
-          {selectedFiles.length === 1 && (
-            <Button
-              variant="success"
-              onClick={handleDownload}
-              className="mb-3 ms-2"
-            >
-              Download File
-            </Button>
-          )}
-          {selectedFiles.length > 0 && (
-            <Button
-              variant="info"
-              onClick={handleDownloadAsZip}
-              className="mb-3 ms-2"
-            >
-              Download File(s) as Zip
-            </Button>
-          )}
+          <div className="d-flex justify-content-end mb-3">
+            {selectedFiles.length === 1 && (
+              <Button
+                variant="success"
+                onClick={handleDownload}
+                className="me-2"
+              >
+                Download File
+              </Button>
+            )}
+            {selectedFiles.length > 0 && (
+              <Button variant="info" onClick={handleDownloadAsZip}>
+                Download File(s) as Zip
+              </Button>
+            )}
+          </div>
           {loading ? (
             <div style={{textAlign: "center", padding: "20px"}}>
               <Spinner animation="border" variant="primary"/>

@@ -1,6 +1,6 @@
 import React from "react";
-import { Table } from "react-bootstrap";
-import { FaFolder, FaFileAlt } from "react-icons/fa";
+import {Table} from "react-bootstrap";
+import {FaFileAlt, FaFolder} from "react-icons/fa";
 
 interface FileOrFolder {
   name: string;
@@ -12,7 +12,7 @@ interface FileOrFolder {
 interface FileTableProps {
   filesAndFolders: FileOrFolder[];
   onFolderClick: (folderName: string) => void;
-  onFileSelect: (fileName: string, isSelected: boolean) => void; // Updated type
+  onFileSelect: (fileName: string, isSelected: boolean) => void;
 }
 
 const FileTable: React.FC<FileTableProps> = ({
@@ -46,20 +46,23 @@ const FileTable: React.FC<FileTableProps> = ({
           <td>{index + 1}</td>
           <td>
             {item.type === "folder" ? (
-              <FaFolder style={{ color: "#ffc107" }} />
+              <FaFolder style={{color: "#ffc107"}}/>
             ) : (
-              <FaFileAlt style={{ color: "#6c757d" }} />
+              <FaFileAlt style={{color: "#6c757d"}}/>
             )}
           </td>
           <td>{item.name}</td>
           <td>
             {item.type === "file" && (
-              <input
-                type="checkbox"
-                onChange={(e) =>
-                  onFileSelect(item.name, e.target.checked)
-                }
-              />
+              <div className="form-check">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  onChange={(e) =>
+                    onFileSelect(item.name, e.target.checked)
+                  }
+                />
+              </div>
             )}
           </td>
         </tr>
