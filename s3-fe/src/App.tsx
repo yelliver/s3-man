@@ -20,7 +20,7 @@ const App: React.FC = () => {
   const [filesAndFolders, setFilesAndFolders] = useState<FileOrFolder[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [showUploadModal, setShowUploadModal] = useState<boolean>(false);
-  const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<string[]>([]); // Tracks selected files
 
   useEffect(() => {
     setLoading(true);
@@ -37,6 +37,7 @@ const App: React.FC = () => {
     try {
       const data = await fetchFilesAndFolders(bucket, "");
       setFilesAndFolders(data);
+      setSelectedFiles([]); // Clear selected files when navigating
     } catch (error) {
       console.error("Error fetching files and folders:", error);
     } finally {
@@ -51,6 +52,7 @@ const App: React.FC = () => {
     try {
       const data = await fetchFilesAndFolders(selectedBucket, newPath);
       setFilesAndFolders(data);
+      setSelectedFiles([]); // Clear selected files when navigating
     } catch (error) {
       console.error("Error fetching folder content:", error);
     } finally {
@@ -58,16 +60,20 @@ const App: React.FC = () => {
     }
   };
 
-  const handleUpload = (file: File, metadata: Record<string, string>) => {
-    console.log("Uploading file:", file.name, "to path:", path);
-    console.log("Metadata:", metadata);
-    setShowUploadModal(false);
+  const handleFileSelection = (fileName: string, isSelected: boolean) => {
+    setSelectedFiles((prev) =>
+      isSelected ? [...prev, fileName] : prev.filter((name) => name !== fileName)
+    );
   };
 
   const handleDownload = () => {
-    if (selectedFile) {
-      console.log("Downloading file:", selectedFile);
+    if (selectedFiles.length === 1) {
+      console.log("Downloading file:", selectedFiles[0]);
     }
+  };
+
+  const handleDownloadAsZip = () => {
+    console.log("Downloading files as zip:", selectedFiles);
   };
 
   return (
@@ -102,14 +108,24 @@ const App: React.FC = () => {
           >
             Upload File
           </Button>
-          <Button
-            variant="success"
-            onClick={handleDownload}
-            disabled={!selectedFile}
-            className="mb-3 ms-2"
-          >
-            Download Selected File
-          </Button>
+          {selectedFiles.length === 1 && (
+            <Button
+              variant="success"
+              onClick={handleDownload}
+              className="mb-3 ms-2"
+            >
+              Download File
+            </Button>
+          )}
+          {selectedFiles.length > 0 && (
+            <Button
+              variant="info"
+              onClick={handleDownloadAsZip}
+              className="mb-3 ms-2"
+            >
+              Download File(s) as Zip
+            </Button>
+          )}
           {loading ? (
             <div style={{textAlign: "center", padding: "20px"}}>
               <Spinner animation="border" variant="primary"/>
@@ -119,7 +135,7 @@ const App: React.FC = () => {
             <FileTable
               filesAndFolders={filesAndFolders}
               onFolderClick={handleFolderClick}
-              onFileSelect={(fileName) => setSelectedFile(fileName)}
+              onFileSelect={handleFileSelection} // This now matches the updated type
             />
           )}
         </div>
@@ -129,7 +145,11 @@ const App: React.FC = () => {
       <UploadModal
         show={showUploadModal}
         onClose={() => setShowUploadModal(false)}
-        onUpload={handleUpload}
+        onUpload={(file, metadata) => {
+          console.log("Uploading file:", file.name, "to path:", path);
+          console.log("Metadata:", metadata);
+          setShowUploadModal(false);
+        }}
       />
     </div>
   );
