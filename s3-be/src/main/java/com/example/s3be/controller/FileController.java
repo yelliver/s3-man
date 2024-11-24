@@ -4,6 +4,8 @@ import com.example.s3be.controller.model.FileOrFolder;
 import com.example.s3be.controller.model.FilesResponse;
 import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -11,8 +13,14 @@ import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 
+import java.io.ByteArrayOutputStream;
+import java.nio.file.Path;
+import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @RestController
 @RequestMapping("/api/files")
@@ -109,6 +117,32 @@ public class FileController {
       .key(key);
     var response = s3Client.getObject(requestBuilder.build());
     return ResponseEntity.ok().body(response.readAllBytes());
+  }
+
+  @SneakyThrows
+  @GetMapping("/download-zip")
+  public ResponseEntity<byte[]> downloadZip(
+    @RequestParam String bucket,
+    @RequestParam List<String> keys // Receive keys as query parameters
+  ) {
+    var byteArrayOutputStream = new ByteArrayOutputStream();
+    try (var zipOutputStream = new ZipOutputStream(byteArrayOutputStream)) {
+      for (var key : keys) {
+        var requestBuilder = GetObjectRequest.builder().bucket(bucket).key(key);
+        var response = s3Client.getObject(requestBuilder.build());
+        zipOutputStream.putNextEntry(new ZipEntry(Path.of(key).getFileName().toString()));
+        response.transferTo(zipOutputStream);
+        zipOutputStream.closeEntry();
+      }
+    }
+
+    var headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+    headers.setContentDispositionFormData("attachment", "files-" + Instant.now().toEpochMilli() + ".zip");
+
+    return ResponseEntity.ok()
+      .headers(headers)
+      .body(byteArrayOutputStream.toByteArray());
   }
 
   @DeleteMapping

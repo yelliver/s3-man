@@ -11,6 +11,7 @@ import {
   createFolder,
   deleteBucket,
   deleteFile,
+  downloadFile, downloadZip,
   fetchBuckets,
   fetchFilesAndFolders,
   uploadFile,
@@ -28,7 +29,6 @@ const App: React.FC = () => {
   const [showUploadModal, setShowUploadModal] = useState<boolean>(false); // Controls the upload modal visibility
   const [newFolderName, setNewFolderName] = useState<string>(""); // For folder creation
 
-  // Load buckets when the app initializes
   useEffect(() => {
     const initializeBuckets = async () => {
       setLoading(true);
@@ -58,6 +58,40 @@ const App: React.FC = () => {
     }
   };
 
+  const handleDownload = async () => {
+    if (selectedFiles.length === 1) {
+      // Single file download
+      const fileKey = `${path}${selectedFiles[0]}`;
+      try {
+        const fileBlob = await downloadFile(selectedBucket, fileKey);
+        const url = window.URL.createObjectURL(fileBlob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = selectedFiles[0];
+        a.click();
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error("Error downloading file:", error);
+      }
+    } else if (selectedFiles.length > 1) {
+      // Multiple files download as ZIP
+      const fileKeys = selectedFiles.map((fileName) => `${path}${fileName}`);
+      try {
+        const zipBlob = await downloadZip(selectedBucket, fileKeys);
+        const url = window.URL.createObjectURL(zipBlob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "files.zip";
+        a.click();
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error("Error downloading ZIP:", error);
+      }
+    } else {
+      alert("No files selected for download.");
+    }
+  };
+
   const handleBucketClick = async (bucket: string) => {
     setSelectedBucket(bucket);
     setPath(""); // Reset to root path
@@ -83,7 +117,6 @@ const App: React.FC = () => {
     if (!window.confirm(`Are you sure you want to delete the file: ${fileName}?`)) return;
 
     try {
-      // Assuming deleteFile is a function in your API service
       await deleteFile(selectedBucket, path, fileName); // Provide bucket and path
       await refreshFiles(selectedBucket, path); // Refresh the file list after deletion
     } catch (error) {
@@ -170,6 +203,18 @@ const App: React.FC = () => {
                 }}
                 onDeleteFile={handleDeleteFile} // Pass delete handler
               />
+              {selectedFiles.length > 0 && (
+                <div style={{marginTop: "20px"}}>
+                  {selectedFiles.length === 1 && (
+                    <Button variant="primary" onClick={handleDownload}>
+                      Download
+                    </Button>
+                  )}
+                  <Button variant="secondary" onClick={handleDownload}>
+                    Download Zip
+                  </Button>
+                </div>
+              )}
             </>
           ) : (
             <h5 className="text-center">Please select a bucket to view files</h5>

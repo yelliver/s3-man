@@ -16,7 +16,7 @@ interface FileTableProps {
   onFolderClick: (folderName: string) => void;
   onFileSelect: (fileName: string, isSelected: boolean) => void;
   onViewMetadata: (file: FileOrFolder) => void;
-  onDeleteFile: (fileName: string) => void; // New prop for deleting files
+  onDeleteFile: (fileName: string) => void;
 }
 
 const FileTable: React.FC<FileTableProps> = ({
@@ -75,7 +75,7 @@ const FileTable: React.FC<FileTableProps> = ({
                     onViewMetadata(fileOrFolder);
                   }}
                 >
-                  <FaInfoCircle/> {/* Updated icon */}
+                  <FaInfoCircle/>
                 </Button>
                 <Button
                   variant="danger"
@@ -85,7 +85,7 @@ const FileTable: React.FC<FileTableProps> = ({
                     onDeleteFile(fileOrFolder.name);
                   }}
                 >
-                  <FaTrashAlt/> {/* Delete icon */}
+                  <FaTrashAlt/>
                 </Button>
               </>
             )}

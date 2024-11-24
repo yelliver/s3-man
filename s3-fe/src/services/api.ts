@@ -13,7 +13,6 @@ export const fetchBuckets = async (): Promise<string[]> => {
   }
 };
 
-
 interface ServerFile {
   name: string;
   size: number;
@@ -45,7 +44,6 @@ export const fetchFilesAndFolders = async (
 
   const data: FetchFilesAndFoldersResponse = await response.json();
 
-  // Map server response into unified structure
   const folders = data.folders.map((folder) => ({
     name: folder.name,
     size: 0,
@@ -64,7 +62,7 @@ export const fetchFilesAndFolders = async (
     folder: false,
   }));
 
-  return [...folders, ...files]; // Combine files and folders into a single array
+  return [...folders, ...files];
 };
 
 export const createBucket = async (bucketName: string): Promise<void> => {
@@ -155,6 +153,32 @@ export const downloadFile = async (
     return await response.blob();
   } catch (error) {
     console.error("Error downloading file:", error);
+    throw error;
+  }
+};
+
+// New function for downloading multiple files as a ZIP
+export const downloadZip = async (
+  bucket: string,
+  keys: string[]
+): Promise<Blob> => {
+  try {
+    // Construct query parameters for the GET request
+    const params = new URLSearchParams();
+    params.append("bucket", bucket);
+    keys.forEach((key) => params.append("keys", key)); // Multiple `keys` params for each file
+
+    const response = await fetch(`${BASE_URL}/api/files/download-zip?${params.toString()}`, {
+      method: "GET",
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to download ZIP: ${response.statusText}`);
+    }
+
+    return await response.blob(); // Return the ZIP file as a blob
+  } catch (error) {
+    console.error("Error downloading ZIP:", error);
     throw error;
   }
 };
