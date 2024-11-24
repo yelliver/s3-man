@@ -1,6 +1,6 @@
-import React, {useState} from "react";
-import {Button, Form, ListGroup, Spinner} from "react-bootstrap";
-import {FaPlus, FaTrash} from "react-icons/fa"; // Import icons
+import React, { useState } from "react";
+import { Button, ListGroup, Form, Spinner } from "react-bootstrap";
+import { FaPlus, FaTrash } from "react-icons/fa";
 
 interface BucketListProps {
   buckets: string[];
@@ -35,6 +35,7 @@ const BucketList: React.FC<BucketListProps> = ({
       style={{
         width: "250px",
         backgroundColor: "#f8f9fa",
+        borderRight: "1px solid #ddd",
         padding: "20px",
         height: "100%",
       }}
@@ -54,38 +55,43 @@ const BucketList: React.FC<BucketListProps> = ({
             variant="primary"
             onClick={handleCreateBucket}
             className="ms-2 d-flex align-items-center justify-content-center"
-            style={{height: "38px", width: "38px"}}
+            style={{ height: "38px", width: "38px" }}
           >
-            <FaPlus/>
+            <FaPlus />
           </Button>
         </Form.Group>
       </Form>
 
-      {/* Bucket List Group */}
+      {/* Bucket List */}
       {loading ? (
         <div className="text-center">
-          <Spinner animation="border" variant="primary"/>
+          <Spinner animation="border" variant="primary" />
         </div>
       ) : (
         <ListGroup>
           {buckets.map((bucket, index) => (
             <ListGroup.Item
               key={index}
-              className="d-flex justify-content-between align-items-center"
+              onClick={() => onBucketClick(bucket)}
+              className={`d-flex justify-content-between align-items-center ${
+                selectedBucket === bucket ? "active" : ""
+              }`}
               style={{
                 cursor: "pointer",
-                backgroundColor: selectedBucket === bucket ? "#e9ecef" : "white",
               }}
             >
-              <span onClick={() => onBucketClick(bucket)}>{bucket}</span>
+              <span>{bucket}</span>
               <Button
                 variant="danger"
                 size="sm"
-                onClick={() => onDeleteBucket(bucket)}
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent triggering the onClick of ListGroup.Item
+                  onDeleteBucket(bucket);
+                }}
                 className="d-flex align-items-center justify-content-center"
-                style={{height: "38px", width: "38px"}}
+                style={{ height: "38px", width: "38px" }}
               >
-                <FaTrash/>
+                <FaTrash />
               </Button>
             </ListGroup.Item>
           ))}
