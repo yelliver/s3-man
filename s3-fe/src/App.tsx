@@ -1,7 +1,10 @@
 import React, {useEffect, useState} from "react";
-import {Container, Navbar} from "react-bootstrap";
+import {Button, Container, Navbar, Spinner} from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import BucketList from "./components/BucketList";
+import FileTable from "./components/FileTable";
+import MetadataModal from "./components/MetadataModal";
+import UploadModal from "./components/UploadModal";
 import {
   createBucket,
   deleteBucket,
@@ -10,6 +13,7 @@ import {
   fetchFilesAndFolders,
   uploadFile,
 } from "./services/api";
+import {FaArrowUp} from "react-icons/fa";
 
 interface FileOrFolder {
   name: string;
@@ -40,7 +44,7 @@ const App: React.FC = () => {
       const data = await fetchBuckets();
       setBuckets(data);
     } catch (error) {
-      console.error("Error loading buckets:", error);
+      console.error("Error loading buckets:", error instanceof Error ? error.message : error);
     } finally {
       setLoading(false);
     }
@@ -55,31 +59,52 @@ const App: React.FC = () => {
       const data = await fetchFilesAndFolders(bucket, "");
       setFilesAndFolders(data);
     } catch (error) {
-      console.error("Error fetching files and folders:", error);
+      console.error("Error fetching files and folders:", error instanceof Error ? error.message : error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCreateBucket = async (bucketName: string) => {
+  const handleFolderClick = async (folderName: string) => {
+    const newPath = path ? `${path}${folderName}/` : `${folderName}/`;
+    setPath(newPath);
+    resetFileSelection();
+    setLoading(true);
     try {
-      await createBucket(bucketName);
-      loadBuckets();
+      const data = await fetchFilesAndFolders(selectedBucket, newPath);
+      setFilesAndFolders(data);
     } catch (error) {
-      alert(`Failed to create bucket: ${error}`);
+      console.error("Error fetching folder content:", error instanceof Error ? error.message : error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDeleteBucket = async (bucketName: string) => {
-    if (!window.confirm(`Are you sure you want to delete the bucket: ${bucketName}?`)) {
-      return;
-    }
+  const handleGoUp = async () => {
+    if (!path) return;
+    const newPath = path.slice(0, path.lastIndexOf("/", path.length - 2) + 1);
+    setPath(newPath);
+    resetFileSelection();
+    setLoading(true);
     try {
-      await deleteBucket(bucketName);
-      loadBuckets();
+      const data = await fetchFilesAndFolders(selectedBucket, newPath);
+      setFilesAndFolders(data);
     } catch (error) {
-      alert(`Failed to delete bucket: ${error}`);
+      console.error("Error fetching parent folder content:", error instanceof Error ? error.message : error);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleViewMetadata = (file: FileOrFolder) => {
+    setSelectedFile(file);
+    setShowMetadataModal(true);
+  };
+
+  const handleFileSelection = (fileName: string, isSelected: boolean) => {
+    setSelectedFiles((prev) =>
+      isSelected ? [...prev, fileName] : prev.filter((name) => name !== fileName)
+    );
   };
 
   const handleUpload = async (file: File, metadata: Record<string, string>) => {
@@ -87,7 +112,7 @@ const App: React.FC = () => {
       await uploadFile(selectedBucket, path, file, metadata);
       handleBucketClick(selectedBucket); // Refresh files and folders
     } catch (error) {
-      alert(`Failed to upload file: ${error}`);
+      alert(`Failed to upload file: ${error instanceof Error ? error.message : error}`);
     } finally {
       setShowUploadModal(false);
     }
@@ -103,7 +128,7 @@ const App: React.FC = () => {
       a.download = selectedFiles[0];
       a.click();
     } catch (error) {
-      alert(`Failed to download file: ${error}`);
+      alert(`Failed to download file: ${error instanceof Error ? error.message : error}`);
     }
   };
 
@@ -125,12 +150,83 @@ const App: React.FC = () => {
           selectedBucket={selectedBucket}
           loading={loading}
           onBucketClick={handleBucketClick}
-          onCreateBucket={handleCreateBucket}
-          onDeleteBucket={handleDeleteBucket}
+          onCreateBucket={async (bucketName) => {
+            try {
+              await createBucket(bucketName);
+              loadBuckets();
+            } catch (error) {
+              alert(`Failed to create bucket: ${error instanceof Error ? error.message : error}`);
+            }
+          }}
+          onDeleteBucket={async (bucketName) => {
+            try {
+              await deleteBucket(bucketName);
+              loadBuckets();
+            } catch (error) {
+              alert(`Failed to delete bucket: ${error instanceof Error ? error.message : error}`);
+            }
+          }}
         />
 
-        {/* Rest of the UI Components */}
+        <div style={{flex: 1, padding: "20px"}}>
+          {selectedBucket ? (
+            <>
+              <h5>
+                Files in <strong>{selectedBucket}</strong>/{path || ""}
+              </h5>
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                  <Button
+                    variant="secondary"
+                    onClick={handleGoUp}
+                    disabled={!path} // Disable if at root
+                    className="me-2"
+                  >
+                    <FaArrowUp/> Go Up
+                  </Button>
+                  <Button
+                    variant="primary"
+                    onClick={() => setShowUploadModal(true)}
+                  >
+                    Upload File
+                  </Button>
+                </div>
+              </div>
+              {loading ? (
+                <div style={{textAlign: "center", padding: "20px"}}>
+                  <Spinner animation="border" variant="primary"/>
+                  <p>Loading...</p>
+                </div>
+              ) : (
+                <FileTable
+                  filesAndFolders={filesAndFolders}
+                  onFolderClick={handleFolderClick}
+                  onFileSelect={handleFileSelection}
+                  onViewMetadata={handleViewMetadata}
+                />
+              )}
+            </>
+          ) : (
+            <h5 className="text-center">Please select a bucket to view files</h5>
+          )}
+        </div>
       </div>
+
+      {/* Metadata Modal */}
+      {selectedFile && (
+        <MetadataModal
+          show={showMetadataModal}
+          onClose={() => setShowMetadataModal(false)}
+          metadata={selectedFile.metadata || []}
+        />
+      )}
+
+      {/* Upload Modal */}
+      <UploadModal
+        show={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        onUpload={handleUpload}
+      />
     </div>
   );
 };

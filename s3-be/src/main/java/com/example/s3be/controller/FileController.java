@@ -25,16 +25,6 @@ public class FileController {
   @Value("${aws.s3.bucketName:}")
   private String defaultBucketName;
 
-  // List buckets
-  @GetMapping("/buckets")
-  public List<String> listBuckets() {
-    ListBucketsResponse response = s3Client.listBuckets();
-    return response.buckets()
-      .stream()
-      .map(Bucket::name)
-      .collect(Collectors.toList());
-  }
-
   // List files and folders in a specific path
   @GetMapping
   public ResponseEntity<FilesResponse> listFiles(
