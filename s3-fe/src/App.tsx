@@ -155,7 +155,7 @@ const App: React.FC = () => {
               <FileTable
                 filesAndFolders={filesAndFolders}
                 onFolderClick={(folderName) => {
-                  const newPath = path ? `${path}${folderName}/` : `${folderName}/`;
+                  const newPath = path ? `${path}${folderName}` : `${folderName}`;
                   setPath(newPath);
                   refreshFiles(selectedBucket, newPath);
                 }}

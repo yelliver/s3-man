@@ -130,8 +130,8 @@ export const uploadFile = async (
   }
 };
 
-export const deleteFile = async (bucket: string, path: string, key: string): Promise<void> => {
-  const url = `${BASE_URL}/api/files?bucket=${bucket}&path=${path}&key=${key}`;
+export const deleteFile = async (bucket: string, path: string, fileName: string): Promise<void> => {
+  const url = `${BASE_URL}/api/files?bucket=${bucket}&key=${path}${fileName}`;
   const response = await fetch(url, {
     method: "DELETE",
   });

@@ -4,7 +4,6 @@ import com.example.s3be.controller.model.FileOrFolder;
 import com.example.s3be.controller.model.FilesResponse;
 import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -12,7 +11,6 @@ import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 
-import java.io.IOException;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -103,27 +101,14 @@ public class FileController {
     );
   }
 
+  @SneakyThrows
   @GetMapping("/download")
-  public ResponseEntity<byte[]> downloadFile(
-    @RequestParam String bucket,
-    @RequestParam String key,
-    @RequestParam(required = false) String ifNoneMatch
-  ) throws IOException {
+  public ResponseEntity<byte[]> downloadFile(@RequestParam String bucket, @RequestParam String key) {
     var requestBuilder = GetObjectRequest.builder()
       .bucket(bucket)
       .key(key);
-
-    if (ifNoneMatch != null && !ifNoneMatch.isEmpty()) {
-      requestBuilder.ifNoneMatch(ifNoneMatch);
-    }
-
     var response = s3Client.getObject(requestBuilder.build());
-    var headers = new HttpHeaders();
-    headers.add("ETag", response.response().eTag());
-    response.response().metadata().forEach(headers::add);
-
     return ResponseEntity.ok()
-      .headers(headers)
       .body(response.readAllBytes());
   }
 
