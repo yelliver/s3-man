@@ -8,6 +8,15 @@ interface BucketHandlerProps {
   setLoading: (loading: boolean) => void;
 }
 
+export const loadBuckets = async (): Promise<string[]> => {
+  try {
+    return await fetchBuckets();
+  } catch (error) {
+    console.error("Error fetching bucket list:", error instanceof Error ? error.message : error);
+    throw error;
+  }
+};
+
 export const handleBucketClick = async (
   bucket: string,
   {setSelectedBucket, setPath, refreshFiles, setLoading}: BucketHandlerProps

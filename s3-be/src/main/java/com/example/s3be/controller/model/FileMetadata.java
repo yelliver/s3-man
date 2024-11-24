@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Map;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -12,4 +14,6 @@ public class FileMetadata {
   private long size;
   private String lastModified;
   private boolean isFolder;
+  private Map<String, String> metadata;
+  private String eTag;
 }

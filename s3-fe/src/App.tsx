@@ -1,13 +1,19 @@
-import React, {useState} from "react";
-import {Button, Container, Navbar} from "react-bootstrap";
+import React, { useEffect, useState } from "react";
+import { Container, Navbar, Button, Spinner } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import BucketList from "./components/BucketList";
 import FileTable from "./components/FileTable";
 import MetadataModal from "./components/MetadataModal";
 import UploadModal from "./components/UploadModal";
-import {handleBucketClick, handleCreateBucket, handleDeleteBucket} from "./utils/bucketHandlers";
-import {handleUpload} from "./utils/fileHandlers";
-import {FaArrowUp} from "react-icons/fa";
+import {
+  handleBucketClick,
+  handleCreateBucket,
+  handleDeleteBucket,
+  loadBuckets,
+} from "./utils/bucketHandlers";
+import { handleUpload, handleDownload, handleDownloadAsZip } from "./utils/fileHandlers";
+import { FaArrowUp } from "react-icons/fa";
+import {fetchFilesAndFolders} from "./services/api";
 
 interface FileOrFolder {
   name: string;
@@ -26,7 +32,24 @@ const App: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<FileOrFolder | null>(null);
   const [showMetadataModal, setShowMetadataModal] = useState<boolean>(false);
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]); // Tracks selected files
-  const [showUploadModal, setShowUploadModal] = useState<boolean>(false);
+  const [showUploadModal, setShowUploadModal] = useState<boolean>(false); // This controls the upload modal visibility
+
+  // Load buckets when the app initializes
+  useEffect(() => {
+    const initializeBuckets = async () => {
+      setLoading(true);
+      try {
+        const bucketList = await loadBuckets();
+        setBuckets(bucketList);
+      } catch (error) {
+        console.error("Error loading buckets:", error instanceof Error ? error.message : error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeBuckets();
+  }, []);
 
   const refreshFiles = async () => {
     if (!selectedBucket) return;
@@ -41,21 +64,30 @@ const App: React.FC = () => {
     }
   };
 
+  const handleOpenUploadModal = () => {
+    setShowUploadModal(true); // Opens the upload modal
+  };
+
+  const handleCloseUploadModal = () => {
+    setShowUploadModal(false); // Closes the upload modal
+  };
+
   return (
-    <div style={{height: "100vh", display: "flex", flexDirection: "column"}}>
+    <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
       <Navbar bg="dark" variant="dark">
         <Container>
           <Navbar.Brand href="#">S3 File Manager</Navbar.Brand>
         </Container>
       </Navbar>
 
-      <div style={{flex: 1, display: "flex"}}>
+      <div style={{ flex: 1, display: "flex" }}>
         <BucketList
           buckets={buckets}
           selectedBucket={selectedBucket}
           loading={loading}
           onBucketClick={(bucket) =>
             handleBucketClick(bucket, {
+              setBuckets,
               setSelectedBucket,
               setPath,
               refreshFiles,
@@ -65,16 +97,24 @@ const App: React.FC = () => {
           onCreateBucket={(bucketName) =>
             handleCreateBucket(bucketName, {
               setBuckets,
+              setSelectedBucket,
+              setPath,
+              refreshFiles,
+              setLoading,
             })
           }
           onDeleteBucket={(bucketName) =>
             handleDeleteBucket(bucketName, {
               setBuckets,
+              setSelectedBucket,
+              setPath,
+              refreshFiles,
+              setLoading,
             })
           }
         />
 
-        <div style={{flex: 1, padding: "20px"}}>
+        <div style={{ flex: 1, padding: "20px" }}>
           {selectedBucket ? (
             <>
               <h5>
@@ -92,19 +132,11 @@ const App: React.FC = () => {
                     disabled={!path} // Disable if at root
                     className="me-2"
                   >
-                    <FaArrowUp/> Go Up
+                    <FaArrowUp /> Go Up
                   </Button>
                   <Button
                     variant="primary"
-                    onClick={() =>
-                      handleUpload(null, {}, {
-                        selectedBucket,
-                        path,
-                        setShowUploadModal,
-                        refreshFiles,
-                        selectedFiles,
-                      })
-                    }
+                    onClick={handleOpenUploadModal} // Open the upload modal when clicked
                   >
                     Upload File
                   </Button>
@@ -142,8 +174,8 @@ const App: React.FC = () => {
 
       {/* Upload Modal */}
       <UploadModal
-        show={showUploadModal}
-        onClose={() => setShowUploadModal(false)}
+        show={showUploadModal} // Controlled by showUploadModal state
+        onClose={handleCloseUploadModal} // Closes the modal when triggered
         onUpload={(file, metadata) =>
           handleUpload(file, metadata, {
             selectedBucket,
