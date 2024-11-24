@@ -101,28 +101,32 @@ const App: React.FC = () => {
               ? `Files in ${selectedBucket}/${path || ""}`
               : "Select a Bucket"}
           </h5>
-          <Button
-            variant="primary"
-            onClick={() => setShowUploadModal(true)}
-            className="mb-3"
-          >
-            Upload File
-          </Button>
-          <div className="d-flex justify-content-end mb-3">
-            {selectedFiles.length === 1 && (
-              <Button
-                variant="success"
-                onClick={handleDownload}
-                className="me-2"
-              >
-                Download File
-              </Button>
-            )}
-            {selectedFiles.length > 0 && (
-              <Button variant="info" onClick={handleDownloadAsZip}>
-                Download File(s) as Zip
-              </Button>
-            )}
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            {/* Left-aligned Upload Button */}
+            <Button
+              variant="primary"
+              onClick={() => setShowUploadModal(true)}
+            >
+              Upload File
+            </Button>
+
+            {/* Right-aligned Download Buttons */}
+            <div className="d-flex justify-content-end">
+              {selectedFiles.length === 1 && (
+                <Button
+                  variant="success"
+                  onClick={handleDownload}
+                  className="me-2"
+                >
+                  Download File
+                </Button>
+              )}
+              {selectedFiles.length > 0 && (
+                <Button variant="info" onClick={handleDownloadAsZip}>
+                  Download File(s) as Zip
+                </Button>
+              )}
+            </div>
           </div>
           {loading ? (
             <div style={{textAlign: "center", padding: "20px"}}>
