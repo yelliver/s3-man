@@ -13,36 +13,58 @@ export const fetchBuckets = async (): Promise<string[]> => {
   }
 };
 
+
+interface ServerFile {
+  name: string;
+  size: number;
+  lastModified: string;
+  metadata: Record<string, string>;
+  etag: string;
+  folder: boolean;
+}
+
+interface ServerFolder {
+  name: string;
+}
+
+interface FetchFilesAndFoldersResponse {
+  files: ServerFile[];
+  folders: ServerFolder[];
+}
+
 export const fetchFilesAndFolders = async (
   bucket: string,
-  folderPath: string
-): Promise<
-  { name: string; type: "file" | "folder"; size?: string; lastModified?: string }[]
-> => {
-  try {
-    const response = await fetch(
-      `${BASE_URL}/api/files?bucketName=${bucket}&path=${folderPath}`
-    );
-    if (!response.ok) {
-      throw new Error(`Failed to fetch files and folders: ${response.statusText}`);
-    }
-    const data = await response.json();
-    return [
-      ...data.folders.map((folder: string) => ({
-        name: folder,
-        type: "folder",
-      })),
-      ...data.files.map((file: any) => ({
-        name: file.name,
-        type: "file",
-        size: file.size,
-        lastModified: file.lastModified,
-      })),
-    ];
-  } catch (error) {
-    console.error("Error fetching files and folders:", error);
-    return [];
+  path: string
+): Promise<ServerFile[]> => {
+  const url = `${BASE_URL}/api/files?bucket=${bucket}&path=${path}`;
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch files and folders: ${response.statusText}`);
   }
+
+  const data: FetchFilesAndFoldersResponse = await response.json();
+
+  // Map server response into unified structure
+  const folders = data.folders.map((folder) => ({
+    name: folder.name,
+    size: 0,
+    lastModified: "",
+    metadata: {},
+    etag: "",
+    folder: true,
+  }));
+
+  const files = data.files.map((file) => ({
+    name: file.name,
+    size: file.size,
+    lastModified: file.lastModified,
+    metadata: file.metadata,
+    etag: file.etag,
+    folder: false,
+  }));
+
+  return [...folders, ...files]; // Combine files and folders into a single array
 };
 
 export const createBucket = async (bucketName: string): Promise<void> => {
@@ -87,7 +109,7 @@ export const uploadFile = async (
     });
 
     const response = await fetch(
-      `${BASE_URL}/api/files/upload?bucketName=${bucket}&path=${path}`,
+      `${BASE_URL}/api/files/upload?bucket=${bucket}&path=${path}`,
       {
         method: "POST",
         body: formData,
@@ -108,7 +130,7 @@ export const downloadFile = async (
 ): Promise<Blob> => {
   try {
     const response = await fetch(
-      `${BASE_URL}/api/files/download?bucketName=${bucket}&fileName=${fileName}`
+      `${BASE_URL}/api/files/download?bucket=${bucket}&fileName=${fileName}`
     );
     if (!response.ok) {
       throw new Error(`Failed to download file: ${response.statusText}`);

@@ -25,12 +25,12 @@ public class FileController {
 
   @GetMapping
   public ResponseEntity<FilesResponse> listFiles(
-    @RequestParam String bucketName,
+    @RequestParam String bucket,
     @RequestParam(required = false, defaultValue = "") String path
   ) {
     try {
       var response = s3Client.listObjectsV2(ListObjectsV2Request.builder()
-        .bucket(bucketName)
+        .bucket(bucket)
         .prefix(path)
         .delimiter("/")
         .build());
@@ -54,7 +54,7 @@ public class FileController {
         .filter(s3Object -> !s3Object.key().equals(path))
         .map(s3Object -> {
           var headResponse = s3Client.headObject(HeadObjectRequest.builder()
-            .bucket(bucketName)
+            .bucket(bucket)
             .key(s3Object.key())
             .build());
 
@@ -79,7 +79,7 @@ public class FileController {
   @PostMapping("/upload")
   public ResponseEntity<String> uploadFile(
     @RequestParam("file") MultipartFile file,
-    @RequestParam String bucketName,
+    @RequestParam String bucket,
     @RequestParam(required = false, defaultValue = "") String path,
     @RequestParam(required = false) Map<String, String> metadata
   ) {
@@ -92,7 +92,7 @@ public class FileController {
 
       var response = s3Client.putObject(
         PutObjectRequest.builder()
-          .bucket(bucketName)
+          .bucket(bucket)
           .key(path + file.getOriginalFilename())
           .metadata(finalMetadata)
           .build(),
@@ -111,13 +111,13 @@ public class FileController {
 
   @GetMapping("/download")
   public ResponseEntity<byte[]> downloadFile(
-    @RequestParam String bucketName,
+    @RequestParam String bucket,
     @RequestParam String key,
     @RequestParam(required = false) String ifNoneMatch
   ) {
     try {
       var requestBuilder = GetObjectRequest.builder()
-        .bucket(bucketName)
+        .bucket(bucket)
         .key(key);
 
       if (ifNoneMatch != null && !ifNoneMatch.isEmpty()) {
@@ -144,12 +144,12 @@ public class FileController {
 
   @DeleteMapping
   public ResponseEntity<String> deleteFile(
-    @RequestParam String bucketName,
+    @RequestParam String bucket,
     @RequestParam String key
   ) {
     try {
       s3Client.deleteObject(DeleteObjectRequest.builder()
-        .bucket(bucketName)
+        .bucket(bucket)
         .key(key)
         .build());
 

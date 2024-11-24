@@ -1,20 +1,22 @@
 import React from "react";
-import { Modal, Table, Button } from "react-bootstrap";
+import {Button, Modal, Table} from "react-bootstrap";
 
 interface MetadataModalProps {
   show: boolean;
   onClose: () => void;
-  metadata: { key: string; value: string }[];
+  metadata: Record<string, string>; // Metadata is an object
 }
 
-const MetadataModal: React.FC<MetadataModalProps> = ({ show, onClose, metadata }) => {
+const MetadataModal: React.FC<MetadataModalProps> = ({show, onClose, metadata}) => {
+  const metadataEntries = Object.entries(metadata); // Convert metadata to an array of [key, value] pairs
+
   return (
     <Modal show={show} onHide={onClose}>
       <Modal.Header closeButton>
         <Modal.Title>File Metadata</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        {metadata.length > 0 ? (
+        {metadataEntries.length > 0 ? ( // Check if there is any metadata
           <Table striped bordered hover>
             <thead>
             <tr>
@@ -23,10 +25,10 @@ const MetadataModal: React.FC<MetadataModalProps> = ({ show, onClose, metadata }
             </tr>
             </thead>
             <tbody>
-            {metadata.map((item, index) => (
+            {metadataEntries.map(([key, value], index) => (
               <tr key={index}>
-                <td>{item.key}</td>
-                <td>{item.value}</td>
+                <td>{key}</td>
+                <td>{value}</td>
               </tr>
             ))}
             </tbody>

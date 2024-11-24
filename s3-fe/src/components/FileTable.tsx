@@ -1,13 +1,13 @@
 import React from "react";
-import {Button, Table} from "react-bootstrap";
-import {FaFileAlt, FaFolder} from "react-icons/fa";
+import { Table, Button } from "react-bootstrap";
 
-interface FileOrFolder {
+export interface FileOrFolder {
   name: string;
-  type: "file" | "folder";
-  size?: string;
-  lastModified?: string;
-  metadata?: { key: string; value: string }[];
+  size: number;
+  lastModified: string;
+  metadata: Record<string, string>;
+  etag: string;
+  folder: boolean;
 }
 
 interface FileTableProps {
@@ -23,79 +23,55 @@ const FileTable: React.FC<FileTableProps> = ({
                                                onFileSelect,
                                                onViewMetadata,
                                              }) => {
+  const handleRowClick = (fileOrFolder: FileOrFolder) => {
+    if (fileOrFolder.folder) {
+      onFolderClick(fileOrFolder.name);
+    }
+  };
+
   return (
     <Table striped bordered hover>
       <thead>
       <tr>
-        <th>#</th>
-        <th>Type</th>
-        <th>Name</th>
-        <th>Actions</th>
         <th>Select</th>
+        <th>Name</th>
+        <th>Size</th>
+        <th>Last Modified</th>
+        <th>ETag</th>
+        <th>Actions</th>
       </tr>
       </thead>
       <tbody>
-      {filesAndFolders.map((item, index) => (
+      {filesAndFolders.map((fileOrFolder) => (
         <tr
-          key={index}
-          style={{
-            cursor: item.type === "folder" || item.type === "file" ? "pointer" : "default",
-          }}
-          onClick={(e) => {
-            // Prevent metadata button click from toggling checkbox
-            if ((e.target as HTMLElement).tagName === "BUTTON") return;
-
-            // Handle folder click
-            if (item.type === "folder") {
-              onFolderClick(item.name);
-              return;
-            }
-
-            // Handle file row click (toggle checkbox)
-            const checkbox = document.getElementById(
-              `checkbox-${item.name}`
-            ) as HTMLInputElement;
-
-            if (checkbox) {
-              checkbox.checked = !checkbox.checked;
-              onFileSelect(item.name, checkbox.checked);
-            }
-          }}
+          key={fileOrFolder.name}
+          onClick={() => handleRowClick(fileOrFolder)}
+          style={{ cursor: fileOrFolder.folder ? "pointer" : "default" }}
         >
-          <td>{index + 1}</td>
           <td>
-            {item.type === "folder" ? (
-              <FaFolder style={{color: "#ffc107"}}/>
-            ) : (
-              <FaFileAlt style={{color: "#6c757d"}}/>
+            {!fileOrFolder.folder && (
+              <input
+                type="checkbox"
+                onChange={(e) => onFileSelect(fileOrFolder.name, e.target.checked)}
+              />
             )}
           </td>
-          <td>{item.name}</td>
+          <td>{fileOrFolder.name}</td>
+          <td>{fileOrFolder.folder ? "-" : fileOrFolder.size}</td>
+          <td>{fileOrFolder.folder ? "-" : fileOrFolder.lastModified}</td>
+          <td>{fileOrFolder.folder ? "-" : fileOrFolder.etag}</td>
           <td>
-            {item.type === "file" && (
+            {!fileOrFolder.folder && (
               <Button
                 variant="info"
+                size="sm"
                 onClick={(e) => {
-                  e.stopPropagation(); // Prevent row click
-                  onViewMetadata(item);
+                  e.stopPropagation();
+                  onViewMetadata(fileOrFolder);
                 }}
               >
-                View Metadata
+                Show Meta
               </Button>
-            )}
-          </td>
-          <td>
-            {item.type === "file" && (
-              <div className="form-check">
-                <input
-                  id={`checkbox-${item.name}`}
-                  className="form-check-input"
-                  type="checkbox"
-                  onChange={(e) =>
-                    onFileSelect(item.name, e.target.checked)
-                  }
-                />
-              </div>
             )}
           </td>
         </tr>
