@@ -39,13 +39,28 @@ const FileTable: React.FC<FileTableProps> = ({
         <tr
           key={index}
           style={{
-            cursor: item.type === "folder" ? "pointer" : "default",
+            cursor: item.type === "folder" || item.type === "file" ? "pointer" : "default",
           }}
-          onClick={
-            item.type === "folder"
-              ? () => onFolderClick(item.name)
-              : undefined
-          }
+          onClick={(e) => {
+            // Prevent metadata button click from toggling checkbox
+            if ((e.target as HTMLElement).tagName === "BUTTON") return;
+
+            // Handle folder click
+            if (item.type === "folder") {
+              onFolderClick(item.name);
+              return;
+            }
+
+            // Handle file row click (toggle checkbox)
+            const checkbox = document.getElementById(
+              `checkbox-${item.name}`
+            ) as HTMLInputElement;
+
+            if (checkbox) {
+              checkbox.checked = !checkbox.checked;
+              onFileSelect(item.name, checkbox.checked);
+            }
+          }}
         >
           <td>{index + 1}</td>
           <td>
@@ -71,12 +86,16 @@ const FileTable: React.FC<FileTableProps> = ({
           </td>
           <td>
             {item.type === "file" && (
-              <input
-                type="checkbox"
-                onChange={(e) =>
-                  onFileSelect(item.name, e.target.checked)
-                }
-              />
+              <div className="form-check">
+                <input
+                  id={`checkbox-${item.name}`}
+                  className="form-check-input"
+                  type="checkbox"
+                  onChange={(e) =>
+                    onFileSelect(item.name, e.target.checked)
+                  }
+                />
+              </div>
             )}
           </td>
         </tr>
