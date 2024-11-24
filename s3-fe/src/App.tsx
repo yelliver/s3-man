@@ -59,17 +59,17 @@ const App: React.FC = () => {
     }
   };
 
-  const handleDownload = async () => {
-    if (selectedFiles.length === 1) {
-      // Single file download
-      const fileKey = `${path}${selectedFiles[0]}`;
-      await downloadFile(selectedBucket, fileKey); // Open single file download
-    } else if (selectedFiles.length > 1) {
-      // Multiple files download as ZIP
+  const handleDownload = async (zip: boolean) => {
+    if (selectedFiles.length === 0) {
+      alert("No files selected for download.");
+      return;
+    }
+    if (zip) {
       const fileKeys = selectedFiles.map((fileName) => `${path}${fileName}`);
       await downloadZip(selectedBucket, fileKeys); // Open ZIP download
     } else {
-      alert("No files selected for download.");
+      const fileKey = `${path}${selectedFiles[0]}`;
+      await downloadFile(selectedBucket, fileKey); // Open single file download
     }
   };
 
@@ -187,11 +187,11 @@ const App: React.FC = () => {
               {selectedFiles.length > 0 && (
                 <div style={{marginTop: "20px"}}>
                   {selectedFiles.length === 1 && (
-                    <Button variant="primary" onClick={handleDownload}>
+                    <Button variant="primary" onClick={() => handleDownload(false)}>
                       Download
                     </Button>
                   )}
-                  <Button variant="secondary" onClick={handleDownload}>
+                  <Button variant="secondary" onClick={() => handleDownload(true)}>
                     Download Zip
                   </Button>
                 </div>

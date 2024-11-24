@@ -143,9 +143,19 @@ public class FileController {
       }
     }
 
+    String zipFileName;
+    if (keys.size() == 1) {
+      // Single file: Replace the file's extension with `.zip`
+      String originalFileName = Path.of(keys.get(0)).getFileName().toString();
+      zipFileName = originalFileName.replaceAll("\\.[^.]+$", "") + ".zip";
+    } else {
+      // Multiple files: Use a timestamped ZIP file name
+      zipFileName = "files-" + Instant.now().toEpochMilli() + ".zip";
+    }
+
     var headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-    headers.setContentDispositionFormData("attachment", "files-" + Instant.now().toEpochMilli() + ".zip");
+    headers.setContentDispositionFormData("attachment", zipFileName);
 
     return ResponseEntity.ok()
       .headers(headers)
