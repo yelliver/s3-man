@@ -141,17 +141,13 @@ export const deleteFile = async (bucket: string, path: string, fileName: string)
 
 export const downloadFile = async (bucket: string, key: string): Promise<void> => {
   const url = `${BASE_URL}/api/files/download?bucket=${encodeURIComponent(bucket)}&key=${encodeURIComponent(key)}`;
-  window.open(url, "_blank"); // Open the URL in a new tab or window
+  window.open(url, "_blank");
 };
 
 export const downloadZip = async (bucket: string, keys: string[]): Promise<void> => {
   const params = new URLSearchParams();
   params.append("bucket", bucket);
-  keys.forEach((key) => params.append("keys", key)); // Multiple `keys` params for each file
-
-  // Construct the URL
+  keys.forEach((key) => params.append("keys", key));
   const url = `${BASE_URL}/api/files/download-zip?${params.toString()}`;
-
-  // Open the URL in a new tab or window
-  window.open(url, "_blank"); // Browser handles the download and preserves file name
+  window.open(url, "_blank");
 };

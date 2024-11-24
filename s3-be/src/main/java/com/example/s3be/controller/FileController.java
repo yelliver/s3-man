@@ -15,6 +15,7 @@ import software.amazon.awssdk.services.s3.model.*;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -116,14 +117,20 @@ public class FileController {
       .bucket(bucket)
       .key(key);
     var response = s3Client.getObject(requestBuilder.build());
-    return ResponseEntity.ok().body(response.readAllBytes());
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+    headers.setContentDispositionFormData("attachment", Paths.get(key).getFileName().toString());
+
+    return ResponseEntity.ok()
+      .headers(headers)
+      .body(response.readAllBytes());
   }
 
   @SneakyThrows
   @GetMapping("/download-zip")
   public ResponseEntity<byte[]> downloadZip(
     @RequestParam String bucket,
-    @RequestParam List<String> keys // Receive keys as query parameters
+    @RequestParam List<String> keys
   ) {
     var byteArrayOutputStream = new ByteArrayOutputStream();
     try (var zipOutputStream = new ZipOutputStream(byteArrayOutputStream)) {
