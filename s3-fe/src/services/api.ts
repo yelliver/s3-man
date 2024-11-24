@@ -47,10 +47,8 @@ export const fetchFilesAndFolders = async (
 
 export const createBucket = async (bucketName: string): Promise<void> => {
   try {
-    const response = await fetch(`${BASE_URL}/api/buckets`, {
+    const response = await fetch(`${BASE_URL}/api/buckets/${bucketName}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ bucketName }),
     });
     if (!response.ok) {
       throw new Error(await response.text());
