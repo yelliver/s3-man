@@ -141,7 +141,10 @@ const App: React.FC = () => {
                     isSelected ? [...prev, fileName] : prev.filter((name) => name !== fileName)
                   )
                 }
-                onViewMetadata={(file) => setSelectedFile(file)}
+                onViewMetadata={(file) => {
+                  setSelectedFile(file); // Set the selected file
+                  setShowMetadataModal(true); // Open the metadata modal
+                }}
               />
             </>
           ) : (
