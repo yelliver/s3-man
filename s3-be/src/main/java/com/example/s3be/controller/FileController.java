@@ -108,22 +108,16 @@ public class FileController {
       .bucket(bucket)
       .key(key);
     var response = s3Client.getObject(requestBuilder.build());
-    return ResponseEntity.ok()
-      .body(response.readAllBytes());
+    return ResponseEntity.ok().body(response.readAllBytes());
   }
 
   @DeleteMapping
-  public ResponseEntity<String> deleteFile(
-    @RequestParam String bucket,
-    @RequestParam String key
-  ) {
+  public void deleteFile(@RequestParam String bucket, @RequestParam String key) {
     s3Client.deleteObject(
       DeleteObjectRequest.builder()
         .bucket(bucket)
         .key(key)
         .build()
     );
-
-    return ResponseEntity.ok("File deleted successfully: " + key);
   }
 }
