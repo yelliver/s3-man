@@ -24,11 +24,24 @@ public class FileController {
   private S3Client s3Client;
 
   @GetMapping
-  public ResponseEntity<FilesResponse> listFiles(@RequestParam String bucket, @RequestParam(defaultValue = "") String path) {
-    var response = s3Client.listObjectsV2(ListObjectsV2Request.builder().bucket(bucket).prefix(path).delimiter("/").build());
+  public ResponseEntity<FilesResponse> listFiles(
+    @RequestParam String bucket,
+    @RequestParam(defaultValue = "") String path
+  ) {
+    var response = s3Client.listObjectsV2(
+      ListObjectsV2Request.builder()
+        .bucket(bucket)
+        .prefix(path)
+        .delimiter("/")
+        .build()
+    );
 
-    var folders = response.commonPrefixes().stream()
-      .map(prefix -> new FileOrFolder().setName(prefix.prefix().replace(path, "")).setFolder(true))
+    var folders = response.commonPrefixes()
+      .stream()
+      .map(prefix -> new FileOrFolder()
+        .setName(prefix.prefix().replace(path, ""))
+        .setFolder(true)
+      )
       .collect(Collectors.toList());
 
     var files = response.contents()
@@ -38,7 +51,14 @@ public class FileController {
         .setSize(s3Object.size())
         .setLastModified(s3Object.lastModified())
         .setETag(s3Object.eTag())
-        .setMetadata(s3Client.headObject(HeadObjectRequest.builder().bucket(bucket).key(s3Object.key()).build()).metadata())
+        .setMetadata(
+          s3Client.headObject(
+            HeadObjectRequest.builder()
+              .bucket(bucket)
+              .key(s3Object.key())
+              .build()
+          ).metadata()
+        )
       )
       .collect(Collectors.toList());
 
@@ -46,9 +66,15 @@ public class FileController {
   }
 
   @PostMapping("/create-folder")
-  public ResponseEntity<String> createFolder(@RequestParam String bucket, @RequestParam String key) {
+  public ResponseEntity<String> createFolder(
+    @RequestParam String bucket,
+    @RequestParam String key
+  ) {
     s3Client.putObject(
-      PutObjectRequest.builder().bucket(bucket).key(key + ".keep").build(),
+      PutObjectRequest.builder()
+        .bucket(bucket)
+        .key(key + ".keep")
+        .build(),
       RequestBody.fromBytes(new byte[0])
     );
     return ResponseEntity.ok("Folder created successfully: " + key);
@@ -56,7 +82,12 @@ public class FileController {
 
   @SneakyThrows
   @PostMapping("/upload")
-  public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file, @RequestParam String bucket, @RequestParam(defaultValue = "") String path, @RequestParam(required = false) Map<String, String> metadata) {
+  public ResponseEntity<String> uploadFile(
+    @RequestParam("file") MultipartFile file,
+    @RequestParam String bucket,
+    @RequestParam(defaultValue = "") String path,
+    @RequestParam(required = false) Map<String, String> metadata
+  ) {
     var response = s3Client.putObject(
       PutObjectRequest.builder()
         .bucket(bucket)
@@ -65,7 +96,11 @@ public class FileController {
         .build(),
       RequestBody.fromInputStream(file.getInputStream(), file.getSize())
     );
-    return ResponseEntity.ok("File uploaded successfully: " + path + file.getOriginalFilename() + ", ETag: " + response.eTag());
+
+    return ResponseEntity.ok(
+      "File uploaded successfully: " + path + file.getOriginalFilename()
+      + ", ETag: " + response.eTag()
+    );
   }
 
   @GetMapping("/download")
@@ -74,13 +109,18 @@ public class FileController {
     @RequestParam String key,
     @RequestParam(required = false) String ifNoneMatch
   ) throws IOException {
-    var requestBuilder = GetObjectRequest.builder().bucket(bucket).key(key);
-    if (ifNoneMatch != null && !ifNoneMatch.isEmpty()) requestBuilder.ifNoneMatch(ifNoneMatch);
+    var requestBuilder = GetObjectRequest.builder()
+      .bucket(bucket)
+      .key(key);
+
+    if (ifNoneMatch != null && !ifNoneMatch.isEmpty()) {
+      requestBuilder.ifNoneMatch(ifNoneMatch);
+    }
 
     var response = s3Client.getObject(requestBuilder.build());
     var headers = new HttpHeaders();
     headers.add("ETag", response.response().eTag());
-    response.response().metadata().forEach(headers::add); // Add metadata as headers
+    response.response().metadata().forEach(headers::add);
 
     return ResponseEntity.ok()
       .headers(headers)
@@ -88,8 +128,17 @@ public class FileController {
   }
 
   @DeleteMapping
-  public ResponseEntity<String> deleteFile(@RequestParam String bucket, @RequestParam String key) {
-    s3Client.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(key).build());
+  public ResponseEntity<String> deleteFile(
+    @RequestParam String bucket,
+    @RequestParam String key
+  ) {
+    s3Client.deleteObject(
+      DeleteObjectRequest.builder()
+        .bucket(bucket)
+        .key(key)
+        .build()
+    );
+
     return ResponseEntity.ok("File deleted successfully: " + key);
   }
 }
