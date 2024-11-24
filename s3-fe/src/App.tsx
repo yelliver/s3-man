@@ -3,6 +3,7 @@ import {Button, Container, Navbar, Spinner} from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import BucketList from "./components/BucketList";
 import FileTable from "./components/FileTable";
+import MetadataModal from "./components/MetadataModal";
 import UploadModal from "./components/UploadModal";
 import {fetchBuckets, fetchFilesAndFolders} from "./services/api";
 
@@ -11,6 +12,7 @@ interface FileOrFolder {
   type: "file" | "folder";
   size?: string;
   lastModified?: string;
+  metadata?: { key: string; value: string }[];
 }
 
 const App: React.FC = () => {
@@ -19,8 +21,10 @@ const App: React.FC = () => {
   const [path, setPath] = useState<string>(""); // Current folder path
   const [filesAndFolders, setFilesAndFolders] = useState<FileOrFolder[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
-  const [showUploadModal, setShowUploadModal] = useState<boolean>(false);
+  const [selectedFile, setSelectedFile] = useState<FileOrFolder | null>(null);
+  const [showMetadataModal, setShowMetadataModal] = useState<boolean>(false);
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]); // Tracks selected files
+  const [showUploadModal, setShowUploadModal] = useState<boolean>(false);
 
   useEffect(() => {
     setLoading(true);
@@ -37,7 +41,6 @@ const App: React.FC = () => {
     try {
       const data = await fetchFilesAndFolders(bucket, "");
       setFilesAndFolders(data);
-      setSelectedFiles([]); // Clear selected files when navigating
     } catch (error) {
       console.error("Error fetching files and folders:", error);
     } finally {
@@ -60,6 +63,11 @@ const App: React.FC = () => {
     }
   };
 
+  const handleViewMetadata = (file: FileOrFolder) => {
+    setSelectedFile(file);
+    setShowMetadataModal(true);
+  };
+
   const handleFileSelection = (fileName: string, isSelected: boolean) => {
     setSelectedFiles((prev) =>
       isSelected ? [...prev, fileName] : prev.filter((name) => name !== fileName)
@@ -76,9 +84,14 @@ const App: React.FC = () => {
     console.log("Downloading files as zip:", selectedFiles);
   };
 
+  const handleUpload = (file: File, metadata: Record<string, string>) => {
+    console.log("Uploading file:", file.name, "to path:", path);
+    console.log("Metadata:", metadata);
+    setShowUploadModal(false);
+  };
+
   return (
     <div style={{height: "100vh", display: "flex", flexDirection: "column"}}>
-      {/* Navbar */}
       <Navbar bg="dark" variant="dark">
         <Container>
           <Navbar.Brand href="#">S3 File Manager</Navbar.Brand>
@@ -86,7 +99,6 @@ const App: React.FC = () => {
       </Navbar>
 
       <div style={{flex: 1, display: "flex"}}>
-        {/* Bucket List (Sidebar) */}
         <BucketList
           buckets={buckets}
           selectedBucket={selectedBucket}
@@ -94,7 +106,6 @@ const App: React.FC = () => {
           onBucketClick={handleBucketClick}
         />
 
-        {/* File Table */}
         <div style={{flex: 1, padding: "20px"}}>
           <h5>
             {selectedBucket
@@ -102,7 +113,6 @@ const App: React.FC = () => {
               : "Select a Bucket"}
           </h5>
           <div className="d-flex justify-content-between align-items-center mb-3">
-            {/* Left-aligned Upload Button */}
             <Button
               variant="primary"
               onClick={() => setShowUploadModal(true)}
@@ -110,7 +120,6 @@ const App: React.FC = () => {
               Upload File
             </Button>
 
-            {/* Right-aligned Download Buttons */}
             <div className="d-flex justify-content-end">
               {selectedFiles.length === 1 && (
                 <Button
@@ -137,21 +146,27 @@ const App: React.FC = () => {
             <FileTable
               filesAndFolders={filesAndFolders}
               onFolderClick={handleFolderClick}
-              onFileSelect={handleFileSelection} // This now matches the updated type
+              onFileSelect={handleFileSelection}
+              onViewMetadata={handleViewMetadata}
             />
           )}
         </div>
       </div>
 
+      {/* Metadata Modal */}
+      {selectedFile && (
+        <MetadataModal
+          show={showMetadataModal}
+          onClose={() => setShowMetadataModal(false)}
+          metadata={selectedFile.metadata || []}
+        />
+      )}
+
       {/* Upload Modal */}
       <UploadModal
         show={showUploadModal}
         onClose={() => setShowUploadModal(false)}
-        onUpload={(file, metadata) => {
-          console.log("Uploading file:", file.name, "to path:", path);
-          console.log("Metadata:", metadata);
-          setShowUploadModal(false);
-        }}
+        onUpload={handleUpload}
       />
     </div>
   );

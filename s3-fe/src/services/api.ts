@@ -28,6 +28,10 @@ export const fetchFilesAndFolders = (
             type: "file",
             size: "2 MB",
             lastModified: "2024-11-23",
+            metadata: [
+              { key: "Owner", value: "Alice" },
+              { key: "Last Accessed", value: "2024-11-23" },
+            ],
           },
         ],
         "Bucket 1/Documents/": [

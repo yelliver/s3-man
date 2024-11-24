@@ -1,5 +1,5 @@
 import React from "react";
-import {Table} from "react-bootstrap";
+import {Button, Table} from "react-bootstrap";
 import {FaFileAlt, FaFolder} from "react-icons/fa";
 
 interface FileOrFolder {
@@ -7,18 +7,21 @@ interface FileOrFolder {
   type: "file" | "folder";
   size?: string;
   lastModified?: string;
+  metadata?: { key: string; value: string }[];
 }
 
 interface FileTableProps {
   filesAndFolders: FileOrFolder[];
   onFolderClick: (folderName: string) => void;
   onFileSelect: (fileName: string, isSelected: boolean) => void;
+  onViewMetadata: (file: FileOrFolder) => void;
 }
 
 const FileTable: React.FC<FileTableProps> = ({
                                                filesAndFolders,
                                                onFolderClick,
                                                onFileSelect,
+                                               onViewMetadata,
                                              }) => {
   return (
     <Table striped bordered hover>
@@ -27,6 +30,7 @@ const FileTable: React.FC<FileTableProps> = ({
         <th>#</th>
         <th>Type</th>
         <th>Name</th>
+        <th>Actions</th>
         <th>Select</th>
       </tr>
       </thead>
@@ -54,15 +58,25 @@ const FileTable: React.FC<FileTableProps> = ({
           <td>{item.name}</td>
           <td>
             {item.type === "file" && (
-              <div className="form-check">
-                <input
-                  className="form-check-input"
-                  type="checkbox"
-                  onChange={(e) =>
-                    onFileSelect(item.name, e.target.checked)
-                  }
-                />
-              </div>
+              <Button
+                variant="info"
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent row click
+                  onViewMetadata(item);
+                }}
+              >
+                View Metadata
+              </Button>
+            )}
+          </td>
+          <td>
+            {item.type === "file" && (
+              <input
+                type="checkbox"
+                onChange={(e) =>
+                  onFileSelect(item.name, e.target.checked)
+                }
+              />
             )}
           </td>
         </tr>
