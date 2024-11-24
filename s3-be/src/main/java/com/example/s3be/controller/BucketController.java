@@ -1,5 +1,6 @@
 package com.example.s3be.controller;
 
+import com.example.s3be.controller.model.BucketRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -36,7 +37,8 @@ public class BucketController {
 
   // Create a new bucket
   @PostMapping
-  public ResponseEntity<String> createBucket(@RequestParam String bucketName) {
+  public ResponseEntity<String> createBucket(@RequestBody BucketRequest bucketRequest) {
+    String bucketName = bucketRequest.getBucketName(); // Extract bucket name from request
     try {
       // Check if bucket already exists
       ListBucketsResponse listBucketsResponse = s3Client.listBuckets();
@@ -62,11 +64,11 @@ public class BucketController {
 
   // Delete a bucket
   @DeleteMapping("/{bucketName}")
-  public ResponseEntity<String> deleteBucket(@PathVariable String bucketName) {
+  public ResponseEntity<String> deleteBucket(@RequestBody BucketRequest bucketRequest) {
     try {
       // Check if the bucket is empty
       ListObjectsV2Request listObjectsRequest = ListObjectsV2Request.builder()
-        .bucket(bucketName)
+        .bucket(bucketRequest.getBucketName())
         .build();
       ListObjectsV2Response objectsResponse = s3Client.listObjectsV2(listObjectsRequest);
 
@@ -77,11 +79,11 @@ public class BucketController {
 
       // Delete the bucket
       DeleteBucketRequest deleteBucketRequest = DeleteBucketRequest.builder()
-        .bucket(bucketName)
+        .bucket(bucketRequest.getBucketName())
         .build();
       s3Client.deleteBucket(deleteBucketRequest);
 
-      return ResponseEntity.ok("Bucket deleted successfully: " + bucketName);
+      return ResponseEntity.ok("Bucket deleted successfully: " + bucketRequest.getBucketName());
     } catch (Exception e) {
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
         .body("Error deleting bucket: " + e.getMessage());

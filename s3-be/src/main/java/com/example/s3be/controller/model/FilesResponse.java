@@ -9,7 +9,7 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class ListFilesResponse {
+public class FilesResponse {
   private List<FileMetadata> files;
   private List<FileMetadata> folders;
 }

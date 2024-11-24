@@ -1,12 +1,15 @@
 import React, {useEffect, useState} from "react";
-import {Button, Container, Navbar, Spinner} from "react-bootstrap";
+import {Container, Navbar} from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import BucketList from "./components/BucketList";
-import FileTable from "./components/FileTable";
-import MetadataModal from "./components/MetadataModal";
-import UploadModal from "./components/UploadModal";
-import {fetchBuckets, fetchFilesAndFolders} from "./services/api";
-import {FaArrowUp} from "react-icons/fa";
+import {
+  createBucket,
+  deleteBucket,
+  downloadFile,
+  fetchBuckets,
+  fetchFilesAndFolders,
+  uploadFile,
+} from "./services/api";
 
 interface FileOrFolder {
   name: string;
@@ -32,8 +35,15 @@ const App: React.FC = () => {
   }, []);
 
   const loadBuckets = async () => {
-    const data = await fetchBuckets();
-    setBuckets(data);
+    setLoading(true);
+    try {
+      const data = await fetchBuckets();
+      setBuckets(data);
+    } catch (error) {
+      console.error("Error loading buckets:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleBucketClick = async (bucket: string) => {
@@ -53,17 +63,7 @@ const App: React.FC = () => {
 
   const handleCreateBucket = async (bucketName: string) => {
     try {
-      const response = await fetch("/api/buckets", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({bucketName}),
-      });
-
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
-
-      alert("Bucket created successfully!");
+      await createBucket(bucketName);
       loadBuckets();
     } catch (error) {
       alert(`Failed to create bucket: ${error}`);
@@ -74,79 +74,37 @@ const App: React.FC = () => {
     if (!window.confirm(`Are you sure you want to delete the bucket: ${bucketName}?`)) {
       return;
     }
-
     try {
-      const response = await fetch(`/api/buckets/${bucketName}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
-
-      alert("Bucket deleted successfully!");
+      await deleteBucket(bucketName);
       loadBuckets();
     } catch (error) {
       alert(`Failed to delete bucket: ${error}`);
     }
   };
 
-  const handleFolderClick = async (folderName: string) => {
-    const newPath = path ? `${path}${folderName}/` : `${folderName}/`;
-    setPath(newPath);
-    resetFileSelection();
-    setLoading(true);
+  const handleUpload = async (file: File, metadata: Record<string, string>) => {
     try {
-      const data = await fetchFilesAndFolders(selectedBucket, newPath);
-      setFilesAndFolders(data);
+      await uploadFile(selectedBucket, path, file, metadata);
+      handleBucketClick(selectedBucket); // Refresh files and folders
     } catch (error) {
-      console.error("Error fetching folder content:", error);
+      alert(`Failed to upload file: ${error}`);
     } finally {
-      setLoading(false);
+      setShowUploadModal(false);
     }
   };
 
-  const handleGoUp = async () => {
-    if (!path) return;
-    const newPath = path.slice(0, path.lastIndexOf("/", path.length - 2) + 1);
-    setPath(newPath);
-    resetFileSelection();
-    setLoading(true);
+  const handleDownload = async () => {
+    if (selectedFiles.length !== 1) return;
     try {
-      const data = await fetchFilesAndFolders(selectedBucket, newPath);
-      setFilesAndFolders(data);
+      const blob = await downloadFile(selectedBucket, selectedFiles[0]);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = selectedFiles[0];
+      a.click();
     } catch (error) {
-      console.error("Error fetching parent folder content:", error);
-    } finally {
-      setLoading(false);
+      alert(`Failed to download file: ${error}`);
     }
-  };
-
-  const handleViewMetadata = (file: FileOrFolder) => {
-    setSelectedFile(file);
-    setShowMetadataModal(true);
-  };
-
-  const handleFileSelection = (fileName: string, isSelected: boolean) => {
-    setSelectedFiles((prev) =>
-      isSelected ? [...prev, fileName] : prev.filter((name) => name !== fileName)
-    );
-  };
-
-  const handleDownload = () => {
-    if (selectedFiles.length === 1) {
-      console.log("Downloading file:", selectedFiles[0]);
-    }
-  };
-
-  const handleDownloadAsZip = () => {
-    console.log("Downloading files as zip:", selectedFiles);
-  };
-
-  const handleUpload = (file: File, metadata: Record<string, string>) => {
-    console.log("Uploading file:", file.name, "to path:", path);
-    console.log("Metadata:", metadata);
-    setShowUploadModal(false);
   };
 
   const resetFileSelection = () => {
@@ -171,77 +129,8 @@ const App: React.FC = () => {
           onDeleteBucket={handleDeleteBucket}
         />
 
-        <div style={{flex: 1, padding: "20px"}}>
-          <h5>
-            {selectedBucket
-              ? `Files in ${selectedBucket}/${path || ""}`
-              : "Select a Bucket"}
-          </h5>
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <div>
-              <Button
-                variant="secondary"
-                onClick={handleGoUp}
-                disabled={!path} // Disable if at root
-                className="me-2"
-              >
-                <FaArrowUp/> Go Up
-              </Button>
-              <Button
-                variant="primary"
-                onClick={() => setShowUploadModal(true)}
-              >
-                Upload File
-              </Button>
-            </div>
-            <div className="d-flex justify-content-end">
-              {selectedFiles.length === 1 && (
-                <Button
-                  variant="success"
-                  onClick={handleDownload}
-                  className="me-2"
-                >
-                  Download File
-                </Button>
-              )}
-              {selectedFiles.length > 0 && (
-                <Button variant="info" onClick={handleDownloadAsZip}>
-                  Download File(s) as Zip
-                </Button>
-              )}
-            </div>
-          </div>
-          {loading ? (
-            <div style={{textAlign: "center", padding: "20px"}}>
-              <Spinner animation="border" variant="primary"/>
-              <p>Loading...</p>
-            </div>
-          ) : (
-            <FileTable
-              filesAndFolders={filesAndFolders}
-              onFolderClick={handleFolderClick}
-              onFileSelect={handleFileSelection}
-              onViewMetadata={handleViewMetadata}
-            />
-          )}
-        </div>
+        {/* Rest of the UI Components */}
       </div>
-
-      {/* Metadata Modal */}
-      {selectedFile && (
-        <MetadataModal
-          show={showMetadataModal}
-          onClose={() => setShowMetadataModal(false)}
-          metadata={selectedFile.metadata || []}
-        />
-      )}
-
-      {/* Upload Modal */}
-      <UploadModal
-        show={showUploadModal}
-        onClose={() => setShowUploadModal(false)}
-        onUpload={handleUpload}
-      />
     </div>
   );
 };

@@ -1,7 +1,7 @@
 package com.example.s3be.controller;
 
 import com.example.s3be.controller.model.FileMetadata;
-import com.example.s3be.controller.model.ListFilesResponse;
+import com.example.s3be.controller.model.FilesResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -37,7 +37,7 @@ public class FileController {
 
   // List files and folders in a specific path
   @GetMapping
-  public ResponseEntity<ListFilesResponse> listFiles(
+  public ResponseEntity<FilesResponse> listFiles(
     @RequestParam(required = false, defaultValue = "") String bucketName,
     @RequestParam(required = false, defaultValue = "") String path
   ) {
@@ -75,7 +75,7 @@ public class FileController {
         ))
         .collect(Collectors.toList());
 
-      return ResponseEntity.ok(new ListFilesResponse(files, folders));
+      return ResponseEntity.ok(new FilesResponse(files, folders));
     } catch (Exception e) {
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
         .body(null);
