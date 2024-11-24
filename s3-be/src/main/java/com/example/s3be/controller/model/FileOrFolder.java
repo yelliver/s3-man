@@ -9,7 +9,7 @@ import java.util.Map;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class FileMetadata {
+public class FileOrFolder {
   private String name;
   private long size;
   private String lastModified;

@@ -10,6 +10,6 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class FilesResponse {
-  private List<FileMetadata> files;
-  private List<FileMetadata> folders;
+  private List<FileOrFolder> files;
+  private List<FileOrFolder> folders;
 }
