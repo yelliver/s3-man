@@ -124,13 +124,24 @@ export const uploadFile = async (
   }
 };
 
+export const deleteFile = async (bucket: string, path: string, key: string): Promise<void> => {
+  const url = `${BASE_URL}/api/files?bucket=${bucket}&path=${path}&key=${key}`;
+  const response = await fetch(url, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to delete file: ${response.statusText}`);
+  }
+};
+
 export const downloadFile = async (
   bucket: string,
-  fileName: string
+  key: string
 ): Promise<Blob> => {
   try {
     const response = await fetch(
-      `${BASE_URL}/api/files/download?bucket=${bucket}&fileName=${fileName}`
+      `${BASE_URL}/api/files/download?bucket=${bucket}&key=${key}`
     );
     if (!response.ok) {
       throw new Error(`Failed to download file: ${response.statusText}`);

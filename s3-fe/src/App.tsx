@@ -6,7 +6,14 @@ import FileTable, {FileOrFolder} from "./components/FileTable";
 import MetadataModal from "./components/MetadataModal";
 import UploadModal from "./components/UploadModal";
 import {FaArrowUp} from "react-icons/fa";
-import {createBucket, deleteBucket, downloadFile, fetchBuckets, fetchFilesAndFolders, uploadFile} from "./services/api";
+import {
+  createBucket,
+  deleteBucket, deleteFile,
+  downloadFile,
+  fetchBuckets,
+  fetchFilesAndFolders,
+  uploadFile,
+} from "./services/api";
 
 const App: React.FC = () => {
   const [buckets, setBuckets] = useState<string[]>([]);
@@ -36,12 +43,12 @@ const App: React.FC = () => {
     initializeBuckets();
   }, []);
 
-  // Refresh files for the selected bucket and path
-  const refreshFiles = async () => {
-    if (!selectedBucket) return;
+  // Refresh files for a specific bucket and path
+  const refreshFiles = async (bucket: string, currentPath: string = "") => {
+    if (!bucket) return;
     setLoading(true);
     try {
-      const data = await fetchFilesAndFolders(selectedBucket, path);
+      const data = await fetchFilesAndFolders(bucket, currentPath);
       setFilesAndFolders(data);
     } catch (error) {
       console.error("Error refreshing files:", error instanceof Error ? error.message : error);
@@ -55,14 +62,7 @@ const App: React.FC = () => {
     setSelectedBucket(bucket);
     setPath(""); // Reset to root path
     setSelectedFiles([]);
-    setLoading(true);
-    try {
-      await refreshFiles();
-    } catch (error) {
-      console.error("Error loading bucket files:", error instanceof Error ? error.message : error);
-    } finally {
-      setLoading(false);
-    }
+    await refreshFiles(bucket, ""); // Fetch root files for the selected bucket
   };
 
   // Handle bucket creation
@@ -97,11 +97,23 @@ const App: React.FC = () => {
 
     try {
       await uploadFile(selectedBucket, path, file, metadata);
-      await refreshFiles();
+      await refreshFiles(selectedBucket, path);
     } catch (error) {
       alert(`Failed to upload file: ${error instanceof Error ? error.message : error}`);
     } finally {
       setShowUploadModal(false);
+    }
+  };
+
+  const handleDeleteFile = async (fileName: string) => {
+    if (!window.confirm(`Are you sure you want to delete the file: ${fileName}?`)) return;
+
+    try {
+      // Assuming deleteFile is a function in your API service
+      await deleteFile(selectedBucket, path, fileName); // Provide bucket and path
+      await refreshFiles(selectedBucket, path); // Refresh the file list after deletion
+    } catch (error) {
+      alert(`Failed to delete file: ${error instanceof Error ? error.message : error}`);
     }
   };
 
@@ -128,7 +140,7 @@ const App: React.FC = () => {
   const handleGoUp = () => {
     const newPath = path.slice(0, path.lastIndexOf("/", path.length - 2) + 1);
     setPath(newPath);
-    refreshFiles();
+    refreshFiles(selectedBucket, newPath);
   };
 
   return (
@@ -168,7 +180,7 @@ const App: React.FC = () => {
                 onFolderClick={(folderName) => {
                   const newPath = path ? `${path}${folderName}/` : `${folderName}/`;
                   setPath(newPath);
-                  refreshFiles();
+                  refreshFiles(selectedBucket, newPath);
                 }}
                 onFileSelect={(fileName, isSelected) =>
                   setSelectedFiles((prev) =>
@@ -179,6 +191,7 @@ const App: React.FC = () => {
                   setSelectedFile(file);
                   setShowMetadataModal(true);
                 }}
+                onDeleteFile={handleDeleteFile} // Pass delete handler
               />
             </>
           ) : (

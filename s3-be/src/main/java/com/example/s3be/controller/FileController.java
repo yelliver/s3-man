@@ -13,6 +13,7 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 
 import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -43,7 +44,7 @@ public class FileController {
           0,
           null,
           true,
-          new HashMap<>(),
+          new TreeMap<>(),
           null
         ))
         .collect(Collectors.toList());
@@ -84,7 +85,7 @@ public class FileController {
     @RequestParam(required = false) Map<String, String> metadata
   ) {
     try {
-      var finalMetadata = new HashMap<String, String>();
+      var finalMetadata = new TreeMap<String, String>();
       if (metadata != null) {
         finalMetadata.putAll(metadata);
       }

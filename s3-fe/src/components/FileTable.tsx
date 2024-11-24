@@ -1,5 +1,6 @@
 import React from "react";
-import { Table, Button } from "react-bootstrap";
+import {Button, Table} from "react-bootstrap";
+import {FaInfoCircle, FaTrashAlt} from "react-icons/fa";
 
 export interface FileOrFolder {
   name: string;
@@ -15,6 +16,7 @@ interface FileTableProps {
   onFolderClick: (folderName: string) => void;
   onFileSelect: (fileName: string, isSelected: boolean) => void;
   onViewMetadata: (file: FileOrFolder) => void;
+  onDeleteFile: (fileName: string) => void; // New prop for deleting files
 }
 
 const FileTable: React.FC<FileTableProps> = ({
@@ -22,6 +24,7 @@ const FileTable: React.FC<FileTableProps> = ({
                                                onFolderClick,
                                                onFileSelect,
                                                onViewMetadata,
+                                               onDeleteFile,
                                              }) => {
   const handleRowClick = (fileOrFolder: FileOrFolder) => {
     if (fileOrFolder.folder) {
@@ -37,7 +40,6 @@ const FileTable: React.FC<FileTableProps> = ({
         <th>Name</th>
         <th>Size</th>
         <th>Last Modified</th>
-        <th>ETag</th>
         <th>Actions</th>
       </tr>
       </thead>
@@ -46,7 +48,7 @@ const FileTable: React.FC<FileTableProps> = ({
         <tr
           key={fileOrFolder.name}
           onClick={() => handleRowClick(fileOrFolder)}
-          style={{ cursor: fileOrFolder.folder ? "pointer" : "default" }}
+          style={{cursor: fileOrFolder.folder ? "pointer" : "default"}}
         >
           <td>
             {!fileOrFolder.folder && (
@@ -59,19 +61,31 @@ const FileTable: React.FC<FileTableProps> = ({
           <td>{fileOrFolder.name}</td>
           <td>{fileOrFolder.folder ? "-" : fileOrFolder.size}</td>
           <td>{fileOrFolder.folder ? "-" : fileOrFolder.lastModified}</td>
-          <td>{fileOrFolder.folder ? "-" : fileOrFolder.etag}</td>
           <td>
             {!fileOrFolder.folder && (
-              <Button
-                variant="info"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onViewMetadata(fileOrFolder);
-                }}
-              >
-                Show Meta
-              </Button>
+              <>
+                <Button
+                  variant="info"
+                  size="sm"
+                  className="me-2"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onViewMetadata(fileOrFolder);
+                  }}
+                >
+                  <FaInfoCircle/> {/* Updated icon */}
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteFile(fileOrFolder.name);
+                  }}
+                >
+                  <FaTrashAlt/> {/* Delete icon */}
+                </Button>
+              </>
             )}
           </td>
         </tr>
