@@ -1,72 +1,44 @@
-export const fetchBuckets = (): Promise<string[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(["Bucket 1", "Bucket 2", "Bucket 3"]);
-    }, 1000); // Simulate 1-second delay
-  });
+const BASE_URL = "http://localhost:8080";
+
+export const fetchBuckets = async (): Promise<string[]> => {
+  try {
+    const response = await fetch(`${BASE_URL}/api/files/buckets`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch buckets: ${response.statusText}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching buckets:", error);
+    return [];
+  }
 };
 
-export const fetchFilesAndFolders = (
+export const fetchFilesAndFolders = async (
   bucket: string,
   folderPath: string
 ): Promise<
   { name: string; type: "file" | "folder"; size?: string; lastModified?: string }[]
 > => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const mockData: { [path: string]: any[] } = {
-        "Bucket 1/": [
-          {name: "Documents", type: "folder"},
-          {
-            name: "file1.txt",
-            type: "file",
-            size: "15 KB",
-            lastModified: "2024-11-24",
-          },
-          {
-            name: "file2.jpg",
-            type: "file",
-            size: "2 MB",
-            lastModified: "2024-11-23",
-            metadata: [
-              { key: "Owner", value: "Alice" },
-              { key: "Last Accessed", value: "2024-11-23" },
-            ],
-          },
-        ],
-        "Bucket 1/Documents/": [
-          {
-            name: "report.docx",
-            type: "file",
-            size: "50 KB",
-            lastModified: "2024-11-18",
-          },
-          {
-            name: "notes.txt",
-            type: "file",
-            size: "10 KB",
-            lastModified: "2024-11-17",
-          },
-        ],
-        "Bucket 2/": [
-          {name: "Images", type: "folder"},
-          {
-            name: "document.pdf",
-            type: "file",
-            size: "500 KB",
-            lastModified: "2024-11-19",
-          },
-        ],
-        "Bucket 2/Images/": [
-          {
-            name: "photo.png",
-            type: "file",
-            size: "1 MB",
-            lastModified: "2024-11-20",
-          },
-        ],
-      };
-      resolve(mockData[`${bucket}/${folderPath}`] || []);
-    }, 1000); // Simulate 1-second delay
-  });
+  try {
+    const response = await fetch(`${BASE_URL}/api/files?bucketName=${bucket}&path=${folderPath}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch files and folders: ${response.statusText}`);
+    }
+    const data = await response.json();
+    return [
+      ...data.folders.map((folder: string) => ({
+        name: folder,
+        type: "folder",
+      })),
+      ...data.files.map((file: any) => ({
+        name: file.name,
+        type: "file",
+        size: file.size,
+        lastModified: file.lastModified,
+      })),
+    ];
+  } catch (error) {
+    console.error("Error fetching files and folders:", error);
+    return [];
+  }
 };

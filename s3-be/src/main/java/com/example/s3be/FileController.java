@@ -21,11 +21,11 @@ public class FileController {
   private S3Client s3Client;
 
   @Value("${aws.s3.bucketName:}")
-  private String bucketName;
+  private String defaultBucketName;
 
-  //list bucket
+  // List buckets
   @GetMapping("/buckets")
-  public List<String> listBucket() {
+  public List<String> listBuckets() {
     ListBucketsResponse response = s3Client.listBuckets();
     return response.buckets()
       .stream()
@@ -33,44 +33,88 @@ public class FileController {
       .collect(Collectors.toList());
   }
 
-  // List files
+  // List files and folders in a specific path
   @GetMapping
-  public List<String> listFiles() {
-    ListObjectsV2Request request = ListObjectsV2Request.builder()
-      .bucket(bucketName)
-      .build();
+  public ResponseEntity<ListFilesResponse> listFiles(
+    @RequestParam(required = false, defaultValue = "") String bucketName,
+    @RequestParam(required = false, defaultValue = "") String path
+  ) {
+    try {
+      String effectiveBucketName = bucketName.isEmpty() ? defaultBucketName : bucketName;
 
-    ListObjectsV2Response response = s3Client.listObjectsV2(request);
-    return response.contents()
-      .stream()
-      .map(S3Object::key)
-      .collect(Collectors.toList());
+      ListObjectsV2Request request = ListObjectsV2Request.builder()
+        .bucket(effectiveBucketName)
+        .prefix(path)
+        .delimiter("/")
+        .build();
+
+      ListObjectsV2Response response = s3Client.listObjectsV2(request);
+
+      // Extract folders
+      List<FileMetadata> folders = response.commonPrefixes()
+        .stream()
+        .map(prefix -> new FileMetadata(
+          prefix.prefix().replace(path, ""), // Folder name
+          0,                        // Size for folders is 0
+          null,                     // No lastModified for folders
+          true                      // Mark as folder
+        ))
+        .collect(Collectors.toList());
+
+      // Extract files
+      List<FileMetadata> files = response.contents()
+        .stream()
+        .filter(s3Object -> !s3Object.key().equals(path)) // Exclude the folder itself
+        .map(s3Object -> new FileMetadata(
+          s3Object.key().replace(path, ""), // File name
+          s3Object.size(),                  // File size
+          s3Object.lastModified().toString(), // Last modified
+          false                             // Mark as file
+        ))
+        .collect(Collectors.toList());
+
+      return ResponseEntity.ok(new ListFilesResponse(files, folders));
+    } catch (Exception e) {
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .body(null);
+    }
   }
 
-  // Upload file
+  // Upload a file to a specific path
   @PostMapping("/upload")
-  public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) {
+  public ResponseEntity<String> uploadFile(
+    @RequestParam("file") MultipartFile file,
+    @RequestParam(required = false, defaultValue = "") String bucketName,
+    @RequestParam(required = false, defaultValue = "") String path
+  ) {
     try {
+      String effectiveBucketName = bucketName.isEmpty() ? defaultBucketName : bucketName;
+      String key = path + file.getOriginalFilename();
+
       s3Client.putObject(
         PutObjectRequest.builder()
-          .bucket(bucketName)
-          .key(file.getOriginalFilename())
+          .bucket(effectiveBucketName)
+          .key(key)
           .build(),
         RequestBody.fromInputStream(file.getInputStream(), file.getSize())
       );
-      return ResponseEntity.ok("File uploaded successfully: " + file.getOriginalFilename());
+
+      return ResponseEntity.ok("File uploaded successfully: " + key);
     } catch (Exception e) {
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to upload file: " + e.getMessage());
     }
   }
 
-  // Download file
-  @GetMapping("/download/{fileName}")
-  public ResponseEntity<byte[]> downloadFile(@PathVariable String fileName) {
+  // Download a file
+  @GetMapping("/download")
+  public ResponseEntity<byte[]> downloadFile(
+    @RequestParam String bucketName,
+    @RequestParam String key
+  ) {
     try {
       GetObjectRequest getObjectRequest = GetObjectRequest.builder()
         .bucket(bucketName)
-        .key(fileName)
+        .key(key)
         .build();
 
       byte[] content = s3Client.getObject(getObjectRequest).readAllBytes();
@@ -80,17 +124,20 @@ public class FileController {
     }
   }
 
-  // Delete file
-  @DeleteMapping("/{fileName}")
-  public ResponseEntity<String> deleteFile(@PathVariable String fileName) {
+  // Delete a file
+  @DeleteMapping
+  public ResponseEntity<String> deleteFile(
+    @RequestParam String bucketName,
+    @RequestParam String key
+  ) {
     try {
       DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder()
         .bucket(bucketName)
-        .key(fileName)
+        .key(key)
         .build();
 
       s3Client.deleteObject(deleteObjectRequest);
-      return ResponseEntity.ok("File deleted successfully: " + fileName);
+      return ResponseEntity.ok("File deleted successfully: " + key);
     } catch (Exception e) {
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to delete file: " + e.getMessage());
     }
