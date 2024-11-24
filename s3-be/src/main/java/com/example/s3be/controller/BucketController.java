@@ -1,0 +1,70 @@
+package com.example.s3be.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.*;
+
+@RestController
+@RequestMapping("/api/buckets")
+public class BucketController {
+
+  @Autowired
+  private S3Client s3Client;
+
+  // Create a new bucket
+  @PostMapping
+  public ResponseEntity<String> createBucket(@RequestParam String bucketName) {
+    try {
+      // Check if bucket already exists
+      ListBucketsResponse listBucketsResponse = s3Client.listBuckets();
+      boolean bucketExists = listBucketsResponse.buckets()
+        .stream()
+        .anyMatch(bucket -> bucket.name().equals(bucketName));
+
+      if (bucketExists) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body("Bucket already exists: " + bucketName);
+      }
+
+      // Create bucket
+      CreateBucketRequest createBucketRequest = CreateBucketRequest.builder()
+        .bucket(bucketName)
+        .build();
+      s3Client.createBucket(createBucketRequest);
+
+      return ResponseEntity.status(HttpStatus.CREATED).body("Bucket created successfully: " + bucketName);
+    } catch (Exception e) {
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error creating bucket: " + e.getMessage());
+    }
+  }
+
+  // Delete a bucket
+  @DeleteMapping("/{bucketName}")
+  public ResponseEntity<String> deleteBucket(@PathVariable String bucketName) {
+    try {
+      // Check if the bucket is empty
+      ListObjectsV2Request listObjectsRequest = ListObjectsV2Request.builder()
+        .bucket(bucketName)
+        .build();
+      ListObjectsV2Response objectsResponse = s3Client.listObjectsV2(listObjectsRequest);
+
+      if (!objectsResponse.contents().isEmpty()) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+          .body("Bucket is not empty. Delete all files before deleting the bucket.");
+      }
+
+      // Delete the bucket
+      DeleteBucketRequest deleteBucketRequest = DeleteBucketRequest.builder()
+        .bucket(bucketName)
+        .build();
+      s3Client.deleteBucket(deleteBucketRequest);
+
+      return ResponseEntity.ok("Bucket deleted successfully: " + bucketName);
+    } catch (Exception e) {
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .body("Error deleting bucket: " + e.getMessage());
+    }
+  }
+}

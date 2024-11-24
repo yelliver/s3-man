@@ -1,4 +1,4 @@
-package com.example.s3be;
+package com.example.s3be.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

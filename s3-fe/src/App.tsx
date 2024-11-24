@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from "react";
-import { Navbar, Container, Button, Spinner } from "react-bootstrap";
+import React, {useEffect, useState} from "react";
+import {Button, Container, Navbar, Spinner} from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import BucketList from "./components/BucketList";
 import FileTable from "./components/FileTable";
 import MetadataModal from "./components/MetadataModal";
 import UploadModal from "./components/UploadModal";
-import { fetchBuckets, fetchFilesAndFolders } from "./services/api";
-import { FaArrowUp } from "react-icons/fa";
+import {fetchBuckets, fetchFilesAndFolders} from "./services/api";
+import {FaArrowUp} from "react-icons/fa";
 
 interface FileOrFolder {
   name: string;
@@ -28,12 +28,13 @@ const App: React.FC = () => {
   const [showUploadModal, setShowUploadModal] = useState<boolean>(false);
 
   useEffect(() => {
-    setLoading(true);
-    fetchBuckets()
-      .then((data) => setBuckets(data))
-      .catch((error) => console.error("Error fetching buckets:", error))
-      .finally(() => setLoading(false));
+    loadBuckets();
   }, []);
+
+  const loadBuckets = async () => {
+    const data = await fetchBuckets();
+    setBuckets(data);
+  };
 
   const handleBucketClick = async (bucket: string) => {
     setSelectedBucket(bucket);
@@ -47,6 +48,46 @@ const App: React.FC = () => {
       console.error("Error fetching files and folders:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateBucket = async (bucketName: string) => {
+    try {
+      const response = await fetch("/api/buckets", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({bucketName}),
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      alert("Bucket created successfully!");
+      loadBuckets();
+    } catch (error) {
+      alert(`Failed to create bucket: ${error}`);
+    }
+  };
+
+  const handleDeleteBucket = async (bucketName: string) => {
+    if (!window.confirm(`Are you sure you want to delete the bucket: ${bucketName}?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/buckets/${bucketName}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      alert("Bucket deleted successfully!");
+      loadBuckets();
+    } catch (error) {
+      alert(`Failed to delete bucket: ${error}`);
     }
   };
 
@@ -113,22 +154,24 @@ const App: React.FC = () => {
   };
 
   return (
-    <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
+    <div style={{height: "100vh", display: "flex", flexDirection: "column"}}>
       <Navbar bg="dark" variant="dark">
         <Container>
           <Navbar.Brand href="#">S3 File Manager</Navbar.Brand>
         </Container>
       </Navbar>
 
-      <div style={{ flex: 1, display: "flex" }}>
+      <div style={{flex: 1, display: "flex"}}>
         <BucketList
           buckets={buckets}
           selectedBucket={selectedBucket}
           loading={loading}
           onBucketClick={handleBucketClick}
+          onCreateBucket={handleCreateBucket}
+          onDeleteBucket={handleDeleteBucket}
         />
 
-        <div style={{ flex: 1, padding: "20px" }}>
+        <div style={{flex: 1, padding: "20px"}}>
           <h5>
             {selectedBucket
               ? `Files in ${selectedBucket}/${path || ""}`
@@ -142,7 +185,7 @@ const App: React.FC = () => {
                 disabled={!path} // Disable if at root
                 className="me-2"
               >
-                <FaArrowUp /> Go Up
+                <FaArrowUp/> Go Up
               </Button>
               <Button
                 variant="primary"
@@ -169,8 +212,8 @@ const App: React.FC = () => {
             </div>
           </div>
           {loading ? (
-            <div style={{ textAlign: "center", padding: "20px" }}>
-              <Spinner animation="border" variant="primary" />
+            <div style={{textAlign: "center", padding: "20px"}}>
+              <Spinner animation="border" variant="primary"/>
               <p>Loading...</p>
             </div>
           ) : (
@@ -184,6 +227,7 @@ const App: React.FC = () => {
         </div>
       </div>
 
+      {/* Metadata Modal */}
       {selectedFile && (
         <MetadataModal
           show={showMetadataModal}
@@ -192,6 +236,7 @@ const App: React.FC = () => {
         />
       )}
 
+      {/* Upload Modal */}
       <UploadModal
         show={showUploadModal}
         onClose={() => setShowUploadModal(false)}

@@ -1,5 +1,7 @@
-package com.example.s3be;
+package com.example.s3be.controller;
 
+import com.example.s3be.controller.model.FileMetadata;
+import com.example.s3be.controller.model.ListFilesResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;

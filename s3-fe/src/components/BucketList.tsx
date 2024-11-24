@@ -1,11 +1,13 @@
-import React from "react";
-import {Spinner} from "react-bootstrap";
+import React, {useState} from "react";
+import {Button, Form, Spinner} from "react-bootstrap";
 
 interface BucketListProps {
   buckets: string[];
   selectedBucket: string;
   loading: boolean;
   onBucketClick: (bucket: string) => void;
+  onCreateBucket: (bucketName: string) => void;
+  onDeleteBucket: (bucketName: string) => void;
 }
 
 const BucketList: React.FC<BucketListProps> = ({
@@ -13,7 +15,20 @@ const BucketList: React.FC<BucketListProps> = ({
                                                  selectedBucket,
                                                  loading,
                                                  onBucketClick,
+                                                 onCreateBucket,
+                                                 onDeleteBucket,
                                                }) => {
+  const [newBucketName, setNewBucketName] = useState("");
+
+  const handleCreateBucket = () => {
+    if (newBucketName.trim() === "") {
+      alert("Bucket name cannot be empty.");
+      return;
+    }
+    onCreateBucket(newBucketName.trim());
+    setNewBucketName(""); // Clear the input field
+  };
+
   return (
     <div
       style={{
@@ -25,6 +40,27 @@ const BucketList: React.FC<BucketListProps> = ({
       }}
     >
       <h5>Buckets</h5>
+
+      {/* Create Bucket Section */}
+      <Form className="mb-3">
+        <Form.Group className="d-flex">
+          <Form.Control
+            type="text"
+            placeholder="New bucket name"
+            value={newBucketName}
+            onChange={(e) => setNewBucketName(e.target.value)}
+          />
+          <Button
+            variant="primary"
+            onClick={handleCreateBucket}
+            className="ms-2"
+          >
+            Create
+          </Button>
+        </Form.Group>
+      </Form>
+
+      {/* List of Buckets */}
       {loading && buckets.length === 0 ? (
         <Spinner animation="border" variant="primary"/>
       ) : (
@@ -32,6 +68,9 @@ const BucketList: React.FC<BucketListProps> = ({
           <div
             key={index}
             style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
               padding: "10px",
               cursor: "pointer",
               backgroundColor:
@@ -39,9 +78,15 @@ const BucketList: React.FC<BucketListProps> = ({
               borderRadius: "5px",
               marginBottom: "5px",
             }}
-            onClick={() => onBucketClick(bucket)}
           >
-            {bucket}
+            <span onClick={() => onBucketClick(bucket)}>{bucket}</span>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => onDeleteBucket(bucket)}
+            >
+              Delete
+            </Button>
           </div>
         ))
       )}
