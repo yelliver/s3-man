@@ -110,6 +110,28 @@ public class FileController {
     );
   }
 
+  @PostMapping("/copy")
+  public ResponseEntity<String> copyFile(
+    @RequestParam String sourceBucket,
+    @RequestParam String sourceKey,
+    @RequestParam String destinationBucket,
+    @RequestParam String destinationKey
+  ) {
+    var copyRequest = CopyObjectRequest.builder()
+      .sourceBucket(sourceBucket)
+      .sourceKey(sourceKey)
+      .destinationBucket(destinationBucket)
+      .destinationKey(destinationKey)
+      .build();
+
+    s3Client.copyObject(copyRequest);
+
+    return ResponseEntity.ok(
+      String.format("File copied successfully from %s/%s to %s/%s",
+        sourceBucket, sourceKey, destinationBucket, destinationKey)
+    );
+  }
+
   @SneakyThrows
   @GetMapping("/download")
   public ResponseEntity<byte[]> downloadFile(@RequestParam String bucket, @RequestParam String key) {
@@ -117,7 +139,7 @@ public class FileController {
       .bucket(bucket)
       .key(key);
     var response = s3Client.getObject(requestBuilder.build());
-    HttpHeaders headers = new HttpHeaders();
+    var headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
     headers.setContentDispositionFormData("attachment", Paths.get(key).getFileName().toString());
 
@@ -145,11 +167,9 @@ public class FileController {
 
     String zipFileName;
     if (keys.size() == 1) {
-      // Single file: Replace the file's extension with `.zip`
-      String originalFileName = Path.of(keys.get(0)).getFileName().toString();
+      var originalFileName = Path.of(keys.get(0)).getFileName().toString();
       zipFileName = originalFileName.replaceAll("\\.[^.]+$", "") + ".zip";
     } else {
-      // Multiple files: Use a timestamped ZIP file name
       zipFileName = "files-" + Instant.now().toEpochMilli() + ".zip";
     }
 
