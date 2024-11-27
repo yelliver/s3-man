@@ -1,10 +1,11 @@
 package com.example.s3be.controller;
 
+import com.amazonaws.util.IOUtils;
 import com.example.s3be.controller.model.FileOrFolder;
 import com.example.s3be.controller.model.FilesResponse;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,7 +14,6 @@ import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 
-import java.io.ByteArrayOutputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
@@ -132,54 +132,51 @@ public class FileController {
     );
   }
 
-  @SneakyThrows
   @GetMapping("/download")
-  public ResponseEntity<byte[]> downloadFile(@RequestParam String bucket, @RequestParam String key) {
+  public void downloadFile(@RequestParam String bucket, @RequestParam String key, HttpServletResponse response) {
     var requestBuilder = GetObjectRequest.builder()
       .bucket(bucket)
       .key(key);
-    var response = s3Client.getObject(requestBuilder.build());
-    var headers = new HttpHeaders();
-    headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-    headers.setContentDispositionFormData("attachment", Paths.get(key).getFileName().toString());
-
-    return ResponseEntity.ok()
-      .headers(headers)
-      .body(response.readAllBytes());
+    try (var s3Response = s3Client.getObject(requestBuilder.build()); var outputStream = response.getOutputStream()) {
+      response.setContentType(MediaType.APPLICATION_OCTET_STREAM_VALUE);
+      response.setHeader("Content-Disposition", "attachment; filename=\"" + Paths.get(key).getFileName().toString() + "\"");
+      IOUtils.copy(s3Response, outputStream);
+      outputStream.flush();
+    } catch (Exception e) {
+      throw new RuntimeException("Error while streaming file", e);
+    }
   }
 
-  @SneakyThrows
   @GetMapping("/download-zip")
-  public ResponseEntity<byte[]> downloadZip(
+  public void downloadZip(
     @RequestParam String bucket,
-    @RequestParam List<String> keys
+    @RequestParam List<String> keys,
+    HttpServletResponse response
   ) {
-    var byteArrayOutputStream = new ByteArrayOutputStream();
-    try (var zipOutputStream = new ZipOutputStream(byteArrayOutputStream)) {
-      for (var key : keys) {
-        var requestBuilder = GetObjectRequest.builder().bucket(bucket).key(key);
-        var response = s3Client.getObject(requestBuilder.build());
-        zipOutputStream.putNextEntry(new ZipEntry(Path.of(key).getFileName().toString()));
-        response.transferTo(zipOutputStream);
-        zipOutputStream.closeEntry();
+    try {
+      String zipFileName;
+      if (keys.size() == 1) {
+        var originalFileName = Path.of(keys.get(0)).getFileName().toString();
+        zipFileName = originalFileName.replaceAll("\\.[^.]+$", "") + ".zip";
+      } else {
+        zipFileName = "files-" + Instant.now().toEpochMilli() + ".zip";
       }
+      response.setContentType(MediaType.APPLICATION_OCTET_STREAM_VALUE);
+      response.setHeader("Content-Disposition", "attachment; filename=\"" + zipFileName + "\"");
+      try (ZipOutputStream zipOutputStream = new ZipOutputStream(response.getOutputStream())) {
+        for (var key : keys) {
+          var requestBuilder = GetObjectRequest.builder().bucket(bucket).key(key);
+          try (var s3Response = s3Client.getObject(requestBuilder.build())) {
+            zipOutputStream.putNextEntry(new ZipEntry(Path.of(key).getFileName().toString()));
+            s3Response.transferTo(zipOutputStream);
+            zipOutputStream.closeEntry();
+          }
+        }
+        zipOutputStream.flush();
+      }
+    } catch (Exception e) {
+      throw new RuntimeException("Error while creating ZIP file", e);
     }
-
-    String zipFileName;
-    if (keys.size() == 1) {
-      var originalFileName = Path.of(keys.get(0)).getFileName().toString();
-      zipFileName = originalFileName.replaceAll("\\.[^.]+$", "") + ".zip";
-    } else {
-      zipFileName = "files-" + Instant.now().toEpochMilli() + ".zip";
-    }
-
-    var headers = new HttpHeaders();
-    headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-    headers.setContentDispositionFormData("attachment", zipFileName);
-
-    return ResponseEntity.ok()
-      .headers(headers)
-      .body(byteArrayOutputStream.toByteArray());
   }
 
   @DeleteMapping
